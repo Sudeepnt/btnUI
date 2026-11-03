@@ -1023,32 +1023,22 @@ html[data-theme="dark"] .react-btn.is-on { border-color: #e0766b; background: co
 .react-emoji { font-size: 1.05rem; line-height: 1; }
 @media (prefers-reduced-motion: reduce) { .react-btn { transition: none; } .needle-fill { animation: none; } }
 
-/* Likes: the heart, the "Liked it?" popup after a Pulse clip, and the glance popup */
-.like-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.like-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; transition: fill .15s, stroke .15s; }
-.like-btn.is-liked svg { fill: #e8423f; stroke: #e8423f; }
-.like-btn.burst svg { animation: heart-pop .5s cubic-bezier(.2, 1.6, .4, 1); }
-.like-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-@keyframes heart-pop { 0% { transform: scale(.7); } 55% { transform: scale(1.35); } 100% { transform: scale(1); } }
-.pulse-action.like-btn { width: clamp(32px, 9.5cqw, 42px); height: auto; aspect-ratio: 1; background: rgb(0 0 0 / 45%); color: #fff; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.pulse-action.like-btn svg { width: 56%; height: 56%; }
-.pulse-like { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; }
-.pulse-like[hidden] { display: none; }
-.pulse-like-scrim { position: absolute; inset: 0; border: 0; background: rgb(0 0 0 / 62%); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); cursor: pointer; animation: like-fade .2s ease-out; }
-.pulse-like-box { position: relative; display: grid; justify-items: center; gap: 2cqw; pointer-events: none; animation: like-rise .28s ease-out; }
-.pulse-like-box > * { pointer-events: auto; }
-.like-ring { position: relative; display: grid; place-items: center; width: clamp(84px, 30cqw, 128px); aspect-ratio: 1; }
-.like-ring svg:not(.like-big svg) { pointer-events: none; position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
-.like-ring circle { fill: none; stroke: #fff; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 289; stroke-dashoffset: 289; opacity: .9; }
-.like-ring.is-counting circle { animation: like-countdown 3s linear forwards; }
-.like-big { width: 72%; height: auto; aspect-ratio: 1; background: rgb(255 255 255 / 16%); color: #fff; border: 1.5px solid rgb(255 255 255 / 70%); }
-.like-big svg { width: 52%; height: 52%; }
-.pulse-like-q { margin: 0; color: #fff; font: 700 clamp(1.1rem, 6cqw, 1.5rem)/1.1 Newsreader, Georgia, serif; }
-.pulse-like-next { margin: 0; min-height: 1.2em; color: rgb(255 255 255 / 85%); font: 600 clamp(.75rem, 3.4cqw, .875rem)/1.2 'DM Sans', Arial, sans-serif; }
-@keyframes like-countdown { to { stroke-dashoffset: 0; } }
-@keyframes like-fade { from { opacity: 0; } }
-@keyframes like-rise { from { opacity: 0; transform: translateY(10px) scale(.96); } }
-@media (prefers-reduced-motion: reduce) { .like-btn.burst svg, .pulse-like-scrim, .pulse-like-box { animation: none; } .like-ring.is-counting circle { animation-duration: 3s; } }
+/* After a Pulse clip: "Next clip in 3s" (no hearts anywhere: this is not social media) */
+.pulse-next { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; }
+.pulse-next[hidden] { display: none; }
+.pulse-next-scrim { position: absolute; inset: 0; border: 0; background: rgb(0 0 0 / 62%); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); cursor: pointer; animation: popup-fade .2s ease-out; }
+.pulse-next-box { position: relative; display: grid; justify-items: center; gap: 2cqw; pointer-events: none; animation: popup-rise .28s ease-out; }
+.next-ring { position: relative; display: grid; place-items: center; width: clamp(72px, 24cqw, 108px); aspect-ratio: 1; color: #fff; }
+.next-ring svg:first-child { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.next-ring circle { fill: none; stroke: #fff; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 289; stroke-dashoffset: 289; opacity: .9; }
+.next-ring.is-counting circle { animation: next-countdown 3s linear forwards; }
+.next-icon { width: 34%; height: 34%; fill: currentColor; }
+.pulse-next-label { margin: 0; color: #fff; font: 700 clamp(1.05rem, 5.6cqw, 1.4rem)/1.1 Newsreader, Georgia, serif; }
+.pulse-next-hint { margin: 0; color: rgb(255 255 255 / 80%); font: 600 clamp(.72rem, 3.2cqw, .8125rem)/1.2 'DM Sans', Arial, sans-serif; }
+@keyframes next-countdown { to { stroke-dashoffset: 0; } }
+@keyframes popup-fade { from { opacity: 0; } }
+@keyframes popup-rise { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .pulse-next-scrim, .pulse-next-box { animation: none; } }
 
 /* Slider: no save button; the average reader's mark appears once you have answered */
 .slider-wrap { position: relative; }
@@ -1114,9 +1104,9 @@ html[data-theme="dark"] .reason-badge.is-place { color: #7fdca6; background: rgb
 .predict-called { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; }
 .predict-called > div { display: grid; gap: 2px; min-width: 0; }
 .predict-called .poll-share { margin: 0; min-height: 36px; padding: 0 14px; font-size: .8125rem; }
-.card-popup { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 60%); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); animation: like-fade .2s ease-out; }
+.card-popup { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 60%); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); animation: popup-fade .2s ease-out; }
 .card-popup[hidden] { display: none; }
-.card-popup-box { position: relative; display: grid; gap: 14px; width: min(92vw, 360px); max-height: 100%; animation: like-rise .25s ease-out; }
+.card-popup-box { position: relative; display: grid; gap: 14px; width: min(92vw, 360px); max-height: 100%; animation: popup-rise .25s ease-out; }
 .card-popup-img { display: block; width: 100%; aspect-ratio: 4 / 5; height: auto; border-radius: 16px; box-shadow: 0 16px 50px rgb(0 0 0 / 45%); background: #d8d3c8; }
 .card-popup-close { position: absolute; top: -12px; right: -12px; z-index: 1; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #fff; color: #16150f; font: 400 1.5rem/1 Arial, sans-serif; cursor: pointer; box-shadow: 0 4px 14px rgb(0 0 0 / 35%); }
 .card-popup-actions { display: flex; gap: 10px; }

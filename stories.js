@@ -457,23 +457,6 @@ const pulseClips = [
   { category: 'Tech Geopolitics', title: 'Countries redraw the map for advanced chips', clip: 'chip-map', happened: 'Countries are redrawing the map for advanced chips.', matters: 'Chips are now a national priority tied to trade and security.', length: '0:22' },
 ];
 
-// ---- Likes. A heart on every Pulse clip and every "World at a glance" story, kept on this device. After a Pulse clip has played to the
-// end, a "Liked it?" popup shows for 3 seconds (with a countdown) before the next clip loads; in the glance section, a story that has
-// been fully in view for 3 seconds gets the same popup, once per visit. Like counts are not shown: they would be made up until a backend exists.
-const likeKey = 'bought-likes';
-const likes = (() => { try { return JSON.parse(localStorage.getItem(likeKey) || '{}') || {}; } catch (_) { return {}; } })();
-const HEART_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.500s-7.500-4.600-9.600-9.200C1 8 3 4.800 6.200 4.800c1.900 0 3.200 1 3.800 2.200.6-1.200 1.900-2.200 3.800-2.200C17 4.800 19 8 17.600 11.300 15.500 15.900 12 20.500 12 20.500z" transform="translate(1.200 .6)" /></svg>';
-const likeBtn = (key, cls = '') => `<button class="like-btn ${cls}${likes[key] ? ' is-liked' : ''}" type="button" data-like="${key}" aria-pressed="${!!likes[key]}" aria-label="Like" title="Like">${HEART_SVG}</button>`;
-function toggleLike(key) {
-  if (likes[key]) delete likes[key]; else likes[key] = true;
-  try { localStorage.setItem(likeKey, JSON.stringify(likes)); } catch (_) { /* kept for this visit */ }
-  document.querySelectorAll(`[data-like="${key}"]`).forEach((b) => {
-    b.classList.toggle('is-liked', !!likes[key]);
-    b.setAttribute('aria-pressed', String(!!likes[key]));
-    if (likes[key]) { b.classList.remove('burst'); void b.offsetWidth; b.classList.add('burst'); }
-  });
-}
-
 function renderPulse() {
   const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l11-6.5z"/></svg>';
   const shown = pulseClips.filter((clip) => !clip.ad).slice(0, 3);   // three clips, never more (the paid "Clip break" slot is not shown for now)
@@ -484,16 +467,15 @@ function renderPulse() {
           <button class="pulse-hit" type="button" data-pulse-clip aria-label="Play or pause clip: ${escapeStoryText(clip.title)}"></button>
           <span class="pulse-play" aria-hidden="true">${playIcon}</span>
           <div class="pulse-actions">
-            ${likeBtn(`pulse-${clip.clip}`, 'pulse-action')}
             <button class="pulse-action" type="button" data-pulse-share aria-label="Share: ${escapeStoryText(clip.title)}" title="Share"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="18" cy="19" r="2" /><path d="m8 11 8-5M8 13l8 5" /></svg></button>
             <button class="pulse-action" type="button" data-pulse-share-video hidden aria-label="Share the video file: ${escapeStoryText(clip.title)}" title="Share the video"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10 5-3v10l-5-3" /></svg></button>
           </div>
-          <div class="pulse-like" hidden role="dialog" aria-label="Liked it?">
-            <button class="pulse-like-scrim" type="button" data-like-stay aria-label="Stay on this clip"></button>
-            <div class="pulse-like-box">
-              <span class="like-ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" /></svg>${likeBtn(`pulse-${clip.clip}`, 'like-big')}</span>
-              <p class="pulse-like-q">Liked it?</p>
-              <p class="pulse-like-next" aria-live="polite"></p>
+          <div class="pulse-next" hidden role="status">
+            <button class="pulse-next-scrim" type="button" data-next-stay aria-label="Stay on this clip"></button>
+            <div class="pulse-next-box">
+              <span class="next-ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" /></svg><svg class="next-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 5.500v13l9-6.500zM17 5.500h2v13h-2z" /></svg></span>
+              <p class="pulse-next-label" aria-live="polite"></p>
+              <p class="pulse-next-hint">Tap to stay</p>
             </div>
           </div>
           <div class="swipe-copy pulse-copy">
@@ -1216,22 +1198,22 @@ function showActionFeedback(message) {
 // The only control on screen is the progress bar that is part of the picture; there are no media controls or mute button.
 const pulseVideos = () => [...storiesRoot.querySelectorAll('.pulse-video')];
 function pausePulse(except) { pulseVideos().forEach((v) => { if (v !== except) { v.pause(); v.closest('.pulse-card').classList.remove('is-playing'); } }); }
-let likePopup = null;   // { card, timer, tick } while a "Liked it?" popup is counting down
-function hideLikePopup() {
-  if (!likePopup) return;
-  clearTimeout(likePopup.timer); clearInterval(likePopup.tick);
-  likePopup.card.querySelector('.pulse-like').hidden = true;
-  likePopup = null;
+let nextUp = null;   // { card, timer, tick } while "Next clip in 3s" is counting down
+function hideNextUp() {
+  if (!nextUp) return;
+  clearTimeout(nextUp.timer); clearInterval(nextUp.tick);
+  nextUp.card.querySelector('.pulse-next').hidden = true;
+  nextUp = null;
 }
 function startPulse(card) {
   const v = card.querySelector('.pulse-video');
-  hideLikePopup();
+  hideNextUp();
   pausePulse(v);
   v.muted = false;
   v.play().then(() => card.classList.add('is-playing')).catch(() => { v.muted = true; v.play().then(() => card.classList.add('is-playing')).catch(() => {}); });
 }
 storiesRoot.addEventListener('click', (event) => {
-  if (event.target.closest('[data-like-stay]')) { hideLikePopup(); return; }   // tap the dimmed picture: stay on this clip
+  if (event.target.closest('[data-next-stay]')) { hideNextUp(); return; }   // tap the dimmed picture: stay on this clip
   const hit = event.target.closest('[data-pulse-clip]');
   if (!hit) return;
   const card = hit.closest('.pulse-card');
@@ -1239,29 +1221,24 @@ storiesRoot.addEventListener('click', (event) => {
   if (v.paused) startPulse(card);
   else { v.pause(); card.classList.remove('is-playing'); }
 });
-// A clip that plays to the end: the "Liked it?" popup for 3 seconds, then the next clip loads and plays (the last one just resets).
+// A clip that plays to the end: "Next clip in 3s" (tap to stay), then the next clip loads and plays. The last clip just goes back to its start.
 pulseVideos().forEach((v) => v.addEventListener('ended', () => {
   const card = v.closest('.pulse-card'), cards = [...storiesRoot.querySelectorAll('.pulse-card')], next = cards[cards.indexOf(card) + 1];
   card.classList.remove('is-playing');
-  hideLikePopup();
-  const pop = card.querySelector('.pulse-like'), label = pop.querySelector('.pulse-like-next'), ring = pop.querySelector('.like-ring');
+  hideNextUp();
+  if (!next) { v.currentTime = 0; return; }
+  const pop = card.querySelector('.pulse-next'), label = pop.querySelector('.pulse-next-label'), ring = pop.querySelector('.next-ring');
   let left = 3;
-  const show = () => { label.textContent = next ? `Next clip in ${left}s` : ''; };
+  const show = () => { label.textContent = `Next clip in ${left}s`; };
   show(); pop.hidden = false;
   ring.classList.remove('is-counting'); void ring.offsetWidth; ring.classList.add('is-counting');
-  if (next) next.querySelector('video').preload = 'auto';   // start fetching the next clip now, so it is ready at zero
-  likePopup = {
+  next.querySelector('video').preload = 'auto';   // start fetching the next clip now, so it is ready at zero
+  nextUp = {
     card,
     tick: setInterval(() => { left = Math.max(1, left - 1); show(); }, 1000),
-    timer: setTimeout(() => {
-      hideLikePopup();
-      if (next) { next.scrollIntoView({ behavior: 'smooth', block: 'center' }); startPulse(next); }
-      else v.currentTime = 0;
-    }, 3000),
+    timer: setTimeout(() => { hideNextUp(); next.scrollIntoView({ behavior: 'smooth', block: 'center' }); startPulse(next); }, 3000),
   };
 }));
-// any like tap
-storiesRoot.addEventListener('click', (event) => { const b = event.target.closest('[data-like]'); if (b) toggleLike(b.dataset.like); });
 // leaving the page or scrolling a clip out of view stops it
 document.addEventListener('visibilitychange', () => { if (document.hidden) pausePulse(null); });
 if ('IntersectionObserver' in window) {
