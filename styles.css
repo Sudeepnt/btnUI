@@ -923,8 +923,8 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 .pulse-item { width: 100%; min-width: 0; }
 .pulse-card { position: relative; container-type: inline-size; display: block; width: 100%; aspect-ratio: 9 / 16; border-radius: 14px; overflow: hidden; isolation: isolate; color: #fff; background: #14110f; }
 .pulse-video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.pulse-card::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, #0006 0%, transparent 12%, #000d 34%, #000f 46%, #000 100%); }   /* paused: dark enough under the text that the picture's own caption never shows through it */
-.pulse-card.is-playing::after { background: linear-gradient(180deg, #0005 0%, transparent 18%, transparent 58%, #0008 76%, #000e 100%); }
+/* only a light shade at the top for the buttons; the dark panel for the text belongs to the text block (.pulse-copy::before) */
+.pulse-card::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, #0005 0%, transparent 16%); }
 .pulse-hit { position: absolute; inset: 0; z-index: 1; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .pulse-card { scroll-margin-top: calc(var(--masthead-height) + 70px); }
 .pulse-actions { position: absolute; z-index: 3; top: 3.4cqw; left: 3.4cqw; display: flex; gap: 2cqw; }
@@ -943,6 +943,7 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 .pulse-card.is-playing .pulse-play { display: none; }
 /* text block: while a clip plays the facts step aside and the category + title sit at the bottom */
 .pulse-copy { position: absolute; z-index: 2; right: 5cqw; bottom: 5cqw; left: 5cqw; pointer-events: none; }
+.pulse-copy::before { content: ''; position: absolute; z-index: -1; top: -20cqw; right: -5cqw; bottom: -5cqw; left: -5cqw; background: linear-gradient(180deg, transparent 0, #000d 14cqw, #000 20cqw); }   /* starts just above the text and follows its height */
 .pulse-copy .swipe-category { font-size: clamp(.62rem, 3cqw, .75rem); }
 .pulse-copy .pulse-headline { margin: 1.8cqw 0 0; color: #fff; font: 700 clamp(1.05rem, 6.2cqw, 1.9rem)/1.08 Newsreader, Georgia, serif; letter-spacing: -.025em; text-wrap: balance; }
 .pulse-copy .swipe-facts { margin-top: 3cqw; padding-top: 2.6cqw; }
