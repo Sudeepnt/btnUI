@@ -124,7 +124,7 @@
         if (res.ok) window.liveFeed = await res.json();
       } catch (e) { /* no feed: keep the sample stories */ }
       for (const src of ['stories.js', 'completion.js', 'issue-end.js']) {
-        await window.boughtLoadScript(src + '?v=48');
+        await window.boughtLoadScript(src + '?v=50');
       }
     })();
   </script>

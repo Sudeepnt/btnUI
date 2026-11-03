@@ -1048,7 +1048,7 @@ storiesRoot.addEventListener('click', (event) => {
   const wide = window.matchMedia('(min-width: 900px)');
   const mastheadHeight = () => document.querySelector('.sticky-masthead').getBoundingClientRect().height;
 
-  function pin(poster) {
+  function pin(poster, from) {
     if (pinned) return;
     const box = poster.getBoundingClientRect();
     const slot = document.createElement('div');             // keeps the card's height so nothing below jumps
@@ -1057,7 +1057,7 @@ storiesRoot.addEventListener('click', (event) => {
     poster.before(slot);
     if (!wide.matches) { poster.style.left = `${box.left}px`; poster.style.width = `${box.width}px`; }
     poster.classList.add('is-pinned');
-    pinned = { poster, slot };
+    pinned = { poster, slot, from };                        // from: which edge it left through, 'top' or 'bottom'
   }
 
   function unpin() {
@@ -1070,11 +1070,17 @@ storiesRoot.addEventListener('click', (event) => {
 
   function checkPin() {
     if (pinned) {                                           // back in view: put it in its place again
-      if (pinned.slot.getBoundingClientRect().top > mastheadHeight() + 4) unpin();
-      return;
+      const slot = pinned.slot.getBoundingClientRect();
+      const top = mastheadHeight();
+      if (!(pinned.from === 'top' ? slot.top > top + 4 : (slot.top < window.innerHeight - 40 && slot.bottom > top + 24))) return;
+      unpin();                                              // then look again: it may have gone off the other edge
     }
     const playing = storiesRoot.querySelector('.video-poster.has-video.is-playing');
-    if (playing && playing.getBoundingClientRect().bottom < mastheadHeight() + 24) pin(playing);
+    if (!playing) return;
+    const box = playing.getBoundingClientRect();
+    // it rides along at the top whichever way it left: scrolled down past it, or scrolled back up above it
+    if (box.bottom < mastheadHeight() + 24) pin(playing, 'top');
+    else if (box.top >= window.innerHeight) pin(playing, 'bottom');
   }
   let pinFrame = 0;
   window.addEventListener('scroll', () => {
