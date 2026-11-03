@@ -926,6 +926,14 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 .pulse-card::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, #0006 0%, transparent 12%, #000d 34%, #000f 46%, #000 100%); }   /* paused: dark enough under the text that the picture's own caption never shows through it */
 .pulse-card.is-playing::after { background: linear-gradient(180deg, #0005 0%, transparent 18%, transparent 58%, #0008 76%, #000e 100%); }
 .pulse-hit { position: absolute; inset: 0; z-index: 1; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pulse-card { scroll-margin-top: calc(var(--masthead-height) + 70px); }
+.pulse-actions { position: absolute; z-index: 3; top: 3.4cqw; left: 3.4cqw; display: flex; gap: 2cqw; }
+.pulse-action { display: grid; place-items: center; width: clamp(32px, 9.5cqw, 42px); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / 45%); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fff; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pulse-action[hidden], .story-action[hidden] { display: none; }
+.pulse-action svg { width: 52%; height: 52%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pulse-action:hover { background: rgb(0 0 0 / 65%); }
+.pulse-card.is-linked { animation: pulse-linked 2.6s ease-out; }
+@keyframes pulse-linked { 0%, 55% { outline: 3px solid var(--cat, #ad4038); outline-offset: 3px; } 100% { outline: 3px solid transparent; outline-offset: 3px; } }
 .pulse-hit:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
 /* play / resume button: frosted glass disc, shown whenever the clip is paused */
 .pulse-play { position: absolute; z-index: 2; top: 30%; left: 50%; translate: -50% -50%; display: grid; place-items: center; width: clamp(48px, 20cqw, 76px); aspect-ratio: 1; border-radius: 50%; pointer-events: none; background: rgb(20 18 16 / 38%); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3); border: 1.5px solid rgb(255 255 255 / 70%); color: #fff; box-shadow: 0 6px 24px rgb(0 0 0 / 35%), inset 0 0 0 1px rgb(255 255 255 / 10%); animation: pulse-play-in .18s ease-out; }
@@ -959,3 +967,24 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 .is-linked { animation: linked-flash 2.6s ease-out; }
 @keyframes linked-flash { 0%, 55% { background: color-mix(in srgb, var(--cat, #ad4038) 16%, transparent); } 100% { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .is-linked { animation: none; } }
+
+/* Polls: a one-tap question under a story */
+.story-poll { margin-top: 16px; padding: 14px 0 2px; border-top: 1px solid var(--rule); }
+.poll-label { display: block; color: var(--cat, #ad4038); font: 700 .6875rem/1.2 'DM Sans', Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.poll-q { margin: 6px 0 12px; font: 700 1.125rem/1.25 Newsreader, Georgia, serif; letter-spacing: -.01em; text-wrap: balance; }
+.poll-choices { display: flex; gap: 10px; }
+.poll-choice { flex: 1; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--ink); border-radius: 999px; background: transparent; color: var(--ink); font: 700 .9375rem/1 'DM Sans', Arial, sans-serif; cursor: pointer; transition: background .15s, color .15s, transform .1s; -webkit-tap-highlight-color: transparent; }
+.poll-choice:hover { background: var(--ink); color: var(--paper); }
+.poll-choice:active { transform: scale(.97); }
+.poll-choice:focus-visible, .poll-change:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.poll-results { display: grid; gap: 8px; }
+.poll-row { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 0 14px; border-radius: 10px; overflow: hidden; background: rgb(128 120 108 / 14%); font: 600 .9375rem/1.2 'DM Sans', Arial, sans-serif; }
+.poll-fill { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--cat, #ad4038) 22%, transparent); transform-origin: left; animation: poll-grow .5s ease-out; }
+.poll-row.is-mine .poll-fill { background: color-mix(in srgb, var(--cat, #ad4038) 48%, transparent); }
+.poll-name, .poll-row b { position: relative; }
+.poll-name i { font-style: normal; }
+.poll-row b { font-variant-numeric: tabular-nums; }
+.poll-note { margin: 8px 0 0; color: var(--quiet-ink); font: .8125rem/1.3 'DM Sans', Arial, sans-serif; }
+.poll-change { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+@keyframes poll-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .poll-fill { animation: none; } .poll-choice { transition: none; } }

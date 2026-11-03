@@ -5,7 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#efece5">
   <title>Bought. — Today's issue</title>
-  <link rel="stylesheet" href="styles.css?v=67">
+  <meta name="description" content="Today's issue: the news, as short videos you can watch.">
+  <!-- Link previews: these need absolute https addresses. SITE_URL in pipeline/share_pages.py must match the real domain. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Bought.">
+  <meta property="og:title" content="Bought. — Today's issue">
+  <meta property="og:description" content="Today's issue: the news, as short videos you can watch.">
+  <meta property="og:url" content="https://btnui.vercel.app/">
+  <meta property="og:image" content="https://btnui.vercel.app/share/site.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Bought. — Today's issue">
+  <meta name="twitter:description" content="Today's issue: the news, as short videos you can watch.">
+  <meta name="twitter:image" content="https://btnui.vercel.app/share/site.jpg">
+  <link rel="stylesheet" href="styles.css?v=69">
   <script>try{var t=localStorage.getItem('bought-theme');if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 </head>
 <body>
@@ -124,7 +138,7 @@
         if (res.ok) window.liveFeed = await res.json();
       } catch (e) { /* no feed: keep the sample stories */ }
       for (const src of ['stories.js', 'completion.js', 'issue-end.js']) {
-        await window.boughtLoadScript(src + '?v=51');
+        await window.boughtLoadScript(src + '?v=53');
       }
     })();
   </script>

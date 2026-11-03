@@ -462,10 +462,14 @@ function renderPulse() {
   const shown = pulseClips.filter((clip) => !clip.ad).slice(0, 3);   // three clips, never more (the paid "Clip break" slot is not shown for now)
   const cards = shown.map((clip) => `
       <li class="pulse-item">
-        <div class="pulse-card ${categoryClass(clip.category)}" role="group" aria-label="Clip: ${escapeStoryText(clip.title)}">
+        <div class="pulse-card ${categoryClass(clip.category)}" data-clip="${clip.clip}" role="group" aria-label="Clip: ${escapeStoryText(clip.title)}">
           <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=8" poster="pulse/${clip.clip}.pulse.jpg?v=8" loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
           <button class="pulse-hit" type="button" data-pulse-clip aria-label="Play or pause clip: ${escapeStoryText(clip.title)}"></button>
           <span class="pulse-play" aria-hidden="true">${playIcon}</span>
+          <div class="pulse-actions">
+            <button class="pulse-action" type="button" data-pulse-share aria-label="Share: ${escapeStoryText(clip.title)}" title="Share"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="18" cy="19" r="2" /><path d="m8 11 8-5M8 13l8 5" /></svg></button>
+            <button class="pulse-action" type="button" data-pulse-share-video hidden aria-label="Share the video file: ${escapeStoryText(clip.title)}" title="Share the video"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10 5-3v10l-5-3" /></svg></button>
+          </div>
           <div class="swipe-copy pulse-copy">
             <span class="swipe-tags"><span class="swipe-category">${escapeStoryText(clip.category)}</span></span>
             <h2 class="pulse-headline">${escapeStoryText(clip.title)}</h2>
@@ -581,6 +585,52 @@ function readTimeLabel(number, story) {
   return `${readMinutes(story.deck, story.happened, story.matters, ...detail)} min read`;
 }
 
+// ---- Polls: a one-tap question under certain stories ("Do you want a forest over a data center? Yes / No"). Your vote is kept on
+// this device (localStorage). The percentages are SAMPLE numbers (seeded from the story id, plus your own vote) until a real
+// backend counts everyone's votes: replace pollSplit() with a call to it, nothing else changes.
+const YN = ['Yes', 'No'], AD = ['Agree', 'Disagree'];
+const POLLS = {
+  '293873247e6ba2c1': ['Will 2nm chips make a real difference in your next phone?', YN],
+  'ec0d5009476c4c94': ['Should satellite internet for remote schools be free?', YN],
+  '1a0ad868f6c9c489': ['Will quantum computers matter in your lifetime?', YN],
+  '6526647b6166458f': ['Every government office should run on open-source software.', AD],
+  '402ad39f9a1b17ab': ['Should your city switch every bus to electric?', YN],
+  '8f4bf0dde4bfd4fb': ['Would you let an AI agent book your trips for you?', YN],
+  '5a04354ee842f3fe': ['Do you want a forest over a data center?', YN],
+  'bd16eca1270ba10e': ['Have you ever clicked a phishing link?', YN],
+  'f484e19f4ae82b9e': ['Smaller AI models are better than giant ones.', AD],
+  '2e9c7e5be873cc6b': ['Would you let AI take notes at your doctor visit?', YN],
+  '6cad623749cfa265': ['Would you work next to a humanoid robot?', YN],
+  '2cf54d72426f9a35': ['AI-made ads should always be labelled.', AD],
+  '28b9fedabc16067f': ['Would you watch ads to pay less for streaming?', YN],
+  '660713e2158f70fe': ['AI tutors can replace human tutors.', AD],
+  'f33a68d18fc8f517': ['Small teams beat big teams.', AD],
+};
+const pollKey = 'bought-polls';
+let pollVotes = {};
+try { pollVotes = JSON.parse(localStorage.getItem(pollKey) || '{}') || {}; } catch (_) { pollVotes = {}; }
+function pollSplit(id, vote) {   // [share of the first answer, share of the second], in whole percent
+  let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const total = 700 + (h % 900), a = Math.round(total * (0.36 + (h % 33) / 100));
+  const yes = a + (vote === 'a' ? 1 : 0), all = total + (vote ? 1 : 0);
+  const pa = Math.round((yes / all) * 100);
+  return [pa, 100 - pa];
+}
+function renderPollInner(id) {
+  const [q, labels] = POLLS[id];
+  const vote = pollVotes[id];
+  const head = `<span class="poll-label">Your take</span><p class="poll-q" id="poll-q-${id}">${escapeStoryText(q)}</p>`;
+  if (!vote) {
+    return `${head}<div class="poll-choices" role="group" aria-labelledby="poll-q-${id}">
+      <button class="poll-choice" type="button" data-poll-vote="a">${labels[0]}</button>
+      <button class="poll-choice" type="button" data-poll-vote="b">${labels[1]}</button></div>`;
+  }
+  const split = pollSplit(id, vote);
+  const rows = ['a', 'b'].map((k, i) => `<div class="poll-row${vote === k ? ' is-mine' : ''}"><span class="poll-fill" style="width:${split[i]}%"></span><span class="poll-name">${labels[i]}${vote === k ? ' <i aria-hidden="true">✓</i>' : ''}</span><b>${split[i]}%</b></div>`).join('');
+  return `${head}<div class="poll-results" role="status">${rows}</div><p class="poll-note">You voted ${labels[vote === 'a' ? 0 : 1]}. <button class="poll-change" type="button" data-poll-change>Change</button></p>`;
+}
+const renderPoll = (story) => (story.id && POLLS[story.id]) ? `<div class="story-poll" data-poll="${story.id}">${renderPollInner(story.id)}</div>` : '';
+
 function renderStory(story, number, saveKey = number) {
   const loading = number === 1 ? 'eager' : 'lazy';
   return `
@@ -609,11 +659,15 @@ function renderStory(story, number, saveKey = number) {
             <button class="story-action" type="button" data-action="share" aria-label="Share story ${number}" title="Share story">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="18" cy="19" r="2" /><path d="m8 11 8-5M8 13l8 5" /></svg>
             </button>
+            ${story.video ? `<button class="story-action" type="button" data-action="share-video" hidden aria-label="Share the video file, story ${number}" title="Share the video">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10 5-3v10l-5-3" /></svg>
+            </button>` : ''}
           </div>
         </div>
         <h2 id="story-title-${number}"><button class="story-title-button" type="button" data-open-story="${number}" aria-label="Read full story: ${escapeStoryText(story.title)}">${escapeStoryText(story.title)}</button></h2>
         <p class="story-deck">${escapeStoryText(story.deck)}</p>
         <div class="story-byline-row">${renderByline(story, false, readTimeLabel(number, story))}</div>
+        ${renderPoll(story)}
         ${story.link
           ? ''
           : `<div class="story-facts">
@@ -973,10 +1027,10 @@ async function shareStory(article) {
   const summary = article.querySelector('.story-deck').textContent;
   const shareData = { title: `${title} — Bought. Spotlight`, text: summary };
   if (location.protocol === 'https:' || location.protocol === 'http:') {
-    const url = new URL(location.href);
-    // Stories from the feed are shared by their own id (steady from day to day); the built-in samples by position.
-    url.hash = article.dataset.storyId ? `s-${article.dataset.storyId}` : article.id;
-    shareData.url = url.href;
+    // Stories from the feed are shared by their own preview page, /s/<id>/ (its tags carry the story's picture and video, so
+    // chat apps and X show them); the built-in samples, which have no page, by position.
+    if (article.dataset.storyId) shareData.url = sharePageUrl(article.dataset.storyId);
+    else { const url = new URL(location.href); url.hash = article.id; shareData.url = url.href; }
   }
 
   if (typeof navigator.share === 'function') {
@@ -991,6 +1045,51 @@ async function shareStory(article) {
   const copy = [title, summary, shareData.url].filter(Boolean).join('\n\n');
   showActionFeedback(await copyStoryText(copy) ? 'Story copied' : 'Could not share story');
 }
+
+// ---- Sharing. A link goes to /s/<id>/, a small page whose tags carry that story's picture and video (chat apps, X and the like read
+// those; they never see the part after '#'). "Share video" hands the mp4 file itself to the phone's share sheet, so it can be posted
+// to Instagram, X, WhatsApp and so on. That button only appears where the browser can share files.
+const canShareFiles = (() => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'clip.mp4', { type: 'video/mp4' })] })); } catch (_) { return false; } })();
+function sharePageUrl(slug) { return new URL(`s/${slug}/`, location.origin + location.pathname.replace(/[^/]*$/, '')).href; }
+async function shareLink({ title, text, url }) {
+  if (typeof navigator.share === 'function') {
+    try { await navigator.share({ title, text, url }); return; } catch (error) { if (error.name === 'AbortError') return; }
+  }
+  showActionFeedback(await copyStoryText([title, text, url].filter(Boolean).join('\n\n')) ? 'Link copied' : 'Could not copy the link');
+}
+async function shareVideoFile(video, title, text, slug) {
+  showActionFeedback('Preparing the video…');
+  try {
+    const blob = await (await fetch(video.currentSrc || video.src)).blob();
+    const file = new File([blob], `${slug}.mp4`, { type: 'video/mp4' });
+    if (!navigator.canShare({ files: [file] })) throw new Error('unsupported');
+    await navigator.share({ files: [file], title, text });
+    actionFeedback.hidden = true;
+  } catch (error) {
+    if (error.name === 'AbortError') actionFeedback.hidden = true;
+    else showActionFeedback('Could not share the video');
+  }
+}
+storiesRoot.querySelectorAll('[data-action="share-video"], [data-pulse-share-video]').forEach((b) => { b.hidden = !canShareFiles; });
+storiesRoot.addEventListener('click', (event) => {   // Pulse card buttons
+  const btn = event.target.closest('.pulse-action');
+  if (!btn) return;
+  const card = btn.closest('.pulse-card');
+  const title = card.querySelector('.pulse-headline').textContent;
+  const text = card.querySelector('.swipe-facts p').textContent;
+  if (btn.hasAttribute('data-pulse-share-video')) shareVideoFile(card.querySelector('video'), title, text, card.dataset.clip);
+  else shareLink({ title: `${title} — Bought. Pulse`, text, url: sharePageUrl(`pulse-${card.dataset.clip}`) });
+});
+
+storiesRoot.addEventListener('click', (event) => {   // poll votes
+  const vote = event.target.closest('[data-poll-vote]'), change = event.target.closest('[data-poll-change]');
+  if (!vote && !change) return;
+  const box = (vote || change).closest('.story-poll'), id = box.dataset.poll;
+  if (vote) pollVotes[id] = vote.dataset.pollVote; else delete pollVotes[id];
+  try { localStorage.setItem(pollKey, JSON.stringify(pollVotes)); } catch (_) { /* the vote stays for this visit */ }
+  box.innerHTML = renderPollInner(id);
+  box.querySelector(vote ? '.poll-row.is-mine' : '.poll-choice')?.focus?.();
+});
 
 storiesRoot.addEventListener('click', (event) => {
   const button = event.target.closest('[data-action]');
@@ -1007,6 +1106,9 @@ storiesRoot.addEventListener('click', (event) => {
     showActionFeedback(savedStories.has(saveKey) ? 'Story saved' : 'Removed from saved');
   } else if (button.dataset.action === 'share') {
     shareStory(article);
+  } else if (button.dataset.action === 'share-video') {
+    const video = article.querySelector('.video-poster video');
+    if (video) shareVideoFile(video, article.querySelector('h2').textContent, article.querySelector('.story-deck').textContent, article.dataset.storyId || article.id);
   }
 });
 
@@ -1197,6 +1299,7 @@ if (window.boughtLanguage && window.boughtLanguage.locale !== 'en') applyStoryLa
 function findLinkedStory() {
   const key = decodeURIComponent(location.hash.replace(/^#/, ''));
   if (/^s-[\w-]+$/.test(key)) return [...storiesRoot.querySelectorAll('[data-story-id]')].find((el) => el.dataset.storyId === key.slice(2)) || null;
+  if (/^pulse-[\w-]+$/.test(key)) return storiesRoot.querySelector(`.pulse-card[data-clip="${key.slice(6)}"]`);
   if (/^story-\d+$/.test(key)) return storiesRoot.querySelector(`#${key}`);
   return null;
 }
