@@ -585,35 +585,54 @@ function readTimeLabel(number, story) {
   return `${readMinutes(story.deck, story.happened, story.matters, ...detail)} min read`;
 }
 
-// ---- Engagement under Prime stories. Every story with an id can carry ONE question (a poll, a prediction or a sentiment slider)
-// plus a row of one-tap reactions, and every answer can be turned into a branded result card to share.
+// ---- ENGAGEMENT STRATEGIES. Every Prime story gets exactly ONE strategy, never two or three, chosen from what the news is:
+//   Yes / No    a personal or civic choice ("Would you...?", "Should your city...?"): consumer products, services, everyday decisions
+//   Agree / Disagree   a contested claim or policy: rules and regulation, "X is better than Y", public-money questions
+//   Prediction  a forward-looking event that can be checked later (launch, trial, deadline): scored on the reader's record, no money
+//   Slider      a risk, trust or comfort story where strength of feeling is the point: jobs, privacy, health, security
+//   Reactions   plain facts with nothing to vote on (earnings, stock moves, funding, infrastructure, science milestones), and any
+//               sensitive story where a poll would feel wrong. This is also the default when no question has been written.
+// Order of choosing: sensitive -> Reactions; checkable future event -> Prediction; risk or trust -> Slider; contested claim ->
+// Agree / Disagree; personal choice -> Yes / No; anything else -> Reactions. Then a variety pass: the same strategy never sits on two
+// stories in a row, and no strategy goes past a third of the issue. Every answer (not Reactions) can be turned into a share card.
 // Answers and reactions are kept on this device (localStorage). The crowd numbers (percentages, the average reader, reaction counts)
 // are SAMPLE numbers seeded from the story id, plus your own tap, until a real backend counts everyone: replace crowdFor() and
-// reactCounts() with calls to it and nothing else changes.
+// reactCounts() with calls to it and nothing else changes. A story with no entry below gets Reactions.
 const YN = ['Yes', 'No'], AD = ['Agree', 'Disagree'];
-const ENGAGE = {};
-Object.entries({
-  '293873247e6ba2c1': ['Will 2nm chips make a real difference in your next phone?', YN],
-  'ec0d5009476c4c94': ['Should satellite internet for remote schools be free?', YN],
-  '1a0ad868f6c9c489': ['Will quantum computers matter in your lifetime?', YN],
-  '6526647b6166458f': ['Every government office should run on open-source software.', AD],
-  '402ad39f9a1b17ab': ['Should your city switch every bus to electric?', YN],
-  '5a04354ee842f3fe': ['Do you want a forest over a data center?', YN],
-  'f484e19f4ae82b9e': ['Smaller AI models are better than giant ones.', AD],
-  '2cf54d72426f9a35': ['AI-made ads should always be labelled.', AD],
-  '28b9fedabc16067f': ['Would you watch ads to pay less for streaming?', YN],
-  '660713e2158f70fe': ['AI tutors can replace human tutors.', AD],
-}).forEach(([id, [q, labels]]) => { ENGAGE[id] = { type: 'poll', q, labels }; });
-// Predictions: readers call it before it happens; it resolves later and is scored on their record (no money involved).
-Object.assign(ENGAGE, {
-  '8f4bf0dde4bfd4fb': { type: 'predict', q: 'Will OpenAI release a new flagship model before March?', labels: ['Yes, before March', 'No, later'], by: 'March 1, 2027' },
-  '6cad623749cfa265': { type: 'predict', q: 'Will humanoid robots work a full shift in a major warehouse by 2027?', labels: ['Yes, by 2027', 'No, later'], by: 'December 31, 2027' },
-  'bd16eca1270ba10e': { type: 'predict', q: 'Will a phishing kit built with AI cause a major breach this year?', labels: ['Yes, this year', 'No'], by: 'December 31, 2026' },
-  // Sliders: for stories where agree / disagree is too flat, strength of feeling is the point.
-  'f33a68d18fc8f517': { type: 'slider', kicker: 'How concerned are you?', q: 'AI replacing entry-level coding jobs', lo: 'Not worried', hi: 'Very worried', word: 'worried', avg: 64 },
+const poll = (q, labels) => ({ type: 'poll', q, labels });
+const ENGAGE = {
+  // 1 Chipmakers race to ship 2nm chips: a checkable milestone
+  '293873247e6ba2c1': { type: 'predict', q: 'Will a phone with a 2nm chip be on sale before 2027?', labels: ['Yes, before 2027', 'No, later'], by: 'December 31, 2026' },
+  // 2 Satellite broadband reaches remote schools: public-money question
+  'ec0d5009476c4c94': poll('Satellite internet for remote schools should be free.', AD),
+  // 4 Open-source OS in public offices: contested policy
+  '6526647b6166458f': poll('Every government office should run on open-source software.', AD),
+  // 5 Faster-charging batteries for city buses: civic choice
+  '402ad39f9a1b17ab': poll('Should your city switch every bus to electric?', YN),
+  // 6 AI agents move from prompts to tasks: trust
+  '8f4bf0dde4bfd4fb': { type: 'slider', kicker: 'How much would you trust it?', q: 'An AI agent acting for you: booking, buying, replying', lo: 'Not at all', hi: 'Completely', word: 'trusting', avg: 41 },
+  // 7 The AI race runs through the data center: a values trade-off
+  '5a04354ee842f3fe': poll('Do you want a forest over a data center?', YN),
+  // 8 Phishing kits: risk
+  'bd16eca1270ba10e': { type: 'slider', kicker: 'How worried are you?', q: 'A wave of AI-built phishing kits', lo: 'Not worried', hi: 'Very worried', word: 'worried', avg: 68 },
+  // 9 A smaller model rivals larger ones: contested claim
+  'f484e19f4ae82b9e': poll('Smaller AI models are better than giant ones.', AD),
+  // 11 Hospitals test AI note-taking: comfort with health data
   '2e9c7e5be873cc6b': { type: 'slider', kicker: 'How comfortable are you?', q: 'AI taking notes at your doctor visit', lo: 'Not comfortable', hi: 'Very comfortable', word: 'comfortable', avg: 47 },
-  '8d12cdc02eef3e38': { type: 'slider', kicker: 'How much does it matter?', q: 'Cloud capacity running short as demand rises', lo: 'Not at all', hi: 'A great deal', word: 'concerned', avg: 58 },
-});
+  // 12 Humanoid robots begin warehouse trials: a checkable milestone
+  '6cad623749cfa265': { type: 'predict', q: 'Will humanoid robots work a full shift in a major warehouse by 2027?', labels: ['Yes, by 2027', 'No, later'], by: 'December 31, 2027' },
+  // 14 Regulators draft rules for AI ads: contested policy
+  '2cf54d72426f9a35': poll('AI-made ads should always be labelled.', AD),
+  // 16 Undersea cable project: security of shared infrastructure
+  '7a5b1302f922c53b': poll('Undersea cables should be protected like critical infrastructure.', AD),
+  // 18 Streaming giant tests a cheaper ad tier: consumer choice
+  '28b9fedabc16067f': poll('Would you watch ads to pay less for streaming?', YN),
+  // 19 Wearable sensors after surgery: a checkable shift in practice
+  '2a28d3dfce306093': { type: 'predict', q: 'Will hospitals send most surgery patients home with a wearable sensor by 2028?', labels: ['Yes, by 2028', 'No, later'], by: 'December 31, 2028' },
+  // 20 Smaller teams build faster: jobs
+  'f33a68d18fc8f517': { type: 'slider', kicker: 'How concerned are you?', q: 'AI replacing entry-level coding jobs', lo: 'Not worried', hi: 'Very worried', word: 'worried', avg: 64 },
+  // No entry (Reactions): 3 quantum error correction, 10 cloud capacity, 13 chip stocks, 15 software prices, 17 voice assistants.
+};
 const REACTIONS = [['impressive', '🤯', 'Impressive'], ['concerning', '😬', 'Concerning'], ['overhyped', '🙄', 'Overhyped'], ['unknown', '💡', 'Didn’t know']];
 const stateKey = 'bought-engage', reactKey = 'bought-reacts';
 const readJson = (k) => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch (_) { return {}; } };
@@ -674,7 +693,7 @@ function renderEngageInner(id) {
 }
 const renderEngage = (story) => (story.id && ENGAGE[story.id]) ? `<div class="story-poll" data-poll="${story.id}" data-kind="${ENGAGE[story.id].type}">${renderEngageInner(story.id)}</div>` : '';
 function renderReacts(story) {
-  if (!story.id) return '';
+  if (!story.id || ENGAGE[story.id]) return '';   // one strategy per story: Reactions only where there is no question
   const counts = reactCounts(story.id), mine = reactState[story.id] || [];
   return `<div class="story-reacts" data-react-for="${story.id}" role="group" aria-label="React to this story"><span class="poll-label">React</span><div class="react-row">${REACTIONS.map(([k, emoji, name]) => {
     const on = mine.includes(k);
