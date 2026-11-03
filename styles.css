@@ -1131,3 +1131,18 @@ html[data-theme="dark"] .reason-badge.is-place { color: #7fdca6; background: rgb
 .story-poll .slider-you { margin: 8px 0 0; color: var(--quiet-ink); font: .875rem/1.3 'DM Sans', Arial, sans-serif; }
 .story-poll .engage-foot .poll-note, .story-poll .engage-foot .slider-you { margin: 0; }
 .slider { height: 36px; }   /* a bigger touch area for the drag handle */
+
+/* Share button: the paper's own red, filled */
+.story-poll .poll-share { border-color: #9f3029; background: #9f3029; color: #fff; }
+.story-poll .poll-share:hover { border-color: #7f241e; background: #7f241e; color: #fff; }
+html[data-theme="dark"] .story-poll .poll-share { border-color: #e0766b; background: #e0766b; color: #16150f; }
+html[data-theme="dark"] .story-poll .poll-share:hover { border-color: #f0958b; background: #f0958b; color: #16150f; }
+/* Reactions: each one has its own colour when chosen */
+.react-btn[data-react="impressive"].is-on { border-color: #b98a00; background: color-mix(in srgb, #f2bd1d 28%, transparent); }
+.react-btn[data-react="concerning"].is-on { border-color: #9f3029; background: color-mix(in srgb, #9f3029 13%, transparent); }
+.react-btn[data-react="overhyped"].is-on { border-color: #2f7a4a; background: color-mix(in srgb, #2f9a5a 18%, transparent); }
+.react-btn[data-react="unknown"].is-on { border-color: #2a62b8; background: color-mix(in srgb, #2a62b8 14%, transparent); }
+html[data-theme="dark"] .react-btn[data-react="impressive"].is-on { border-color: #f2c94c; background: color-mix(in srgb, #f2bd1d 22%, transparent); }
+html[data-theme="dark"] .react-btn[data-react="concerning"].is-on { border-color: #e0766b; background: color-mix(in srgb, #e0766b 18%, transparent); }
+html[data-theme="dark"] .react-btn[data-react="overhyped"].is-on { border-color: #5fc98a; background: color-mix(in srgb, #5fc98a 18%, transparent); }
+html[data-theme="dark"] .react-btn[data-react="unknown"].is-on { border-color: #7aaaf0; background: color-mix(in srgb, #7aaaf0 18%, transparent); }
