@@ -698,7 +698,32 @@ const ENGAGE = {
   '2a28d3dfce306093': { type: 'predict', q: 'Will hospitals send most surgery patients home with a wearable sensor by 2028?', labels: ['Yes, by 2028', 'No, later'], by: 'December 31, 2028' },
   // 20 Smaller teams build faster: jobs
   'f33a68d18fc8f517': { type: 'slider', kicker: 'How concerned are you?', q: 'AI replacing entry-level coding jobs', lo: 'Not worried', hi: 'Very worried', word: 'worried', avg: 64 },
-  // No entry (Reactions): 3 quantum error correction, 10 cloud capacity, 13 chip stocks, 15 software prices, 17 voice assistants.
+  // ---- World at a glance: one strategy per story, same rules (keyed by position in the section)
+  // 1 The chip race moves beyond the processor: a trend, nothing to vote on
+  // 2 Agents find a place in everyday work: trust
+  'glance-2': { type: 'slider', kicker: 'How much would you hand over?', q: 'AI agents doing parts of your everyday work', lo: 'Nothing', hi: 'Everything', word: 'comfortable', avg: 52 },
+  // 3 Smaller teams are shipping faster: contested claim
+  'glance-3': poll('Small teams beat big teams.', AD),
+  // 4 A new wave of devices puts AI on the go: consumer choice
+  'glance-4': poll('Would you wear an AI device all day?', YN),
+  // 5 Countries redraw the map for advanced chips: a checkable event
+  'glance-5': { type: 'predict', q: 'Will the US and China agree a chip trade deal by 2028?', labels: ['Yes, by 2028', 'No, later'], by: 'December 31, 2028' },
+  // 6 The browser becomes a workspace for agents: contested claim
+  'glance-6': poll('The browser will replace most of your apps.', AD),
+  // 7 The interface after the chat window: consumer choice
+  'glance-7': poll('Would you rather talk to your devices than type?', YN),
+  // 8 Search starts to answer the next question: trust
+  'glance-8': { type: 'slider', kicker: 'How much do you trust it?', q: 'AI answers instead of a list of links', lo: 'Not at all', hi: 'Completely', word: 'trusting', avg: 46 },
+  // 9 Private data becomes useful context: privacy trade-off
+  'glance-9': poll('Would you share private data with an assistant to get better help?', YN),
+  // 10 Clear controls make complex tools easier to trust: contested claim
+  'glance-10': poll('Every AI tool should show exactly what it can access.', AD),
+  // 11 Smaller models move onto the phone: a checkable event
+  'glance-11': { type: 'predict', q: 'Will your next phone run a capable AI model fully offline by 2027?', labels: ['Yes, by 2027', 'No, later'], by: 'December 31, 2027' },
+  // 12 Data center power becomes the bottleneck: risk
+  'glance-12': { type: 'slider', kicker: 'How worried are you?', q: 'AI’s appetite for electricity', lo: 'Not worried', hi: 'Very worried', word: 'worried', avg: 57 },
+  // 13 Early customers shape the first product: no entry, so Reactions. (Also Reactions: 1.)
+  // No entry (Reactions) in the Prime section: 3 quantum error correction, 10 cloud capacity, 13 chip stocks, 15 software prices, 17 voice assistants.
 };
 const REACTIONS = [['impressive', '🤯', 'Impressive'], ['concerning', '😬', 'Concerning'], ['overhyped', '🙄', 'Overhyped'], ['unknown', '💡', 'Didn’t know']];
 const stateKey = 'bought-engage', reactKey = 'bought-reacts';
@@ -903,8 +928,9 @@ function renderGlances() {
         <div class="glance-facts">
           <div><h4>What happened</h4><p>${escapeStoryText(story.deck)}</p></div>
           <div><h4>Why it matters</h4><p>${escapeStoryText(story.matters)}</p></div>
-          <div class="glance-byline-row">${renderByline(story, true, readTimeLabel(number, story))}${likeBtn(`glance-${number}`, 'glance-like')}</div>
+          <div class="glance-byline-row">${renderByline(story, true, readTimeLabel(number, story))}</div>
         </div>
+        <div class="glance-engage">${renderEngage({ id: `glance-${index + 1}` })}${renderReacts({ id: `glance-${index + 1}` })}</div>
       </article>`;
     return item + (glanceSpotlights.has(index + 1) ? renderSpotlightPlacement(SPOTLIGHT_PRIME + 1 + glanceSpotlights.get(index + 1)) : '');
   }).join('');
@@ -1209,27 +1235,6 @@ pulseVideos().forEach((v) => v.addEventListener('ended', () => {
 }));
 // any like tap
 storiesRoot.addEventListener('click', (event) => { const b = event.target.closest('[data-like]'); if (b) toggleLike(b.dataset.like); });
-// Glance stories: fully in view for 3 seconds -> a small "Like this story?" popup for 3 seconds, once per visit and only if not liked yet.
-if ('IntersectionObserver' in window) {
-  const asked = new Set();
-  const dwell = new WeakMap();
-  const askObserver = new IntersectionObserver((entries) => entries.forEach((en) => {
-    const item = en.target, key = item.querySelector('[data-like]')?.dataset.like;
-    clearTimeout(dwell.get(item));
-    if (!en.isIntersecting || !key || asked.has(key) || likes[key]) return;
-    dwell.set(item, setTimeout(() => {
-      asked.add(key);
-      if (likes[key]) return;
-      document.querySelectorAll('.like-pop').forEach((old) => old.remove());   // one popup at a time
-      const pop = document.createElement('div');
-      pop.className = 'like-pop'; pop.setAttribute('role', 'status');
-      pop.innerHTML = `<span>Like this story?</span>${likeBtn(key)}`;
-      item.append(pop);
-      setTimeout(() => pop.remove(), 3000);
-    }, 3000));
-  }), { threshold: 0.8 });
-  storiesRoot.querySelectorAll('.glance-item').forEach((item) => askObserver.observe(item));
-}
 // leaving the page or scrolling a clip out of view stops it
 document.addEventListener('visibilitychange', () => { if (document.hidden) pausePulse(null); });
 if ('IntersectionObserver' in window) {
@@ -1360,7 +1365,7 @@ storiesRoot.addEventListener('click', async (event) => {   // answers, predictio
     if (!slot._blob) await showResultCard(box);
     const file = new File([slot._blob], 'bought-my-take.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'My take on Bought.', url: sharePageUrl(id) }); } catch (error) { if (error.name !== 'AbortError') showActionFeedback('Could not share the card'); }
+      try { await navigator.share({ files: [file], title: 'My take on Bought.', url: id.startsWith('glance-') ? location.origin + location.pathname : sharePageUrl(id) }); } catch (error) { if (error.name !== 'AbortError') showActionFeedback('Could not share the card'); }
     } else {   // desktop: save the picture
       const a = document.createElement('a'); a.href = URL.createObjectURL(slot._blob); a.download = 'bought-my-take.png'; a.click(); showActionFeedback('Card saved');
     }

@@ -1047,13 +1047,7 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 @keyframes like-fade { from { opacity: 0; } }
 @keyframes like-rise { from { opacity: 0; transform: translateY(10px) scale(.96); } }
 .glance-item { position: relative; }
-.glance-byline-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.glance-like { flex: none; width: 32px; height: 32px; color: var(--quiet-ink); }
-.glance-like svg { width: 20px; height: 20px; }
-.like-pop { position: absolute; z-index: 5; right: 8px; bottom: 8px; display: flex; align-items: center; gap: 4px; padding: 4px 6px 4px 14px; border-radius: 999px; background: var(--ink); color: var(--paper); box-shadow: 0 6px 20px rgb(0 0 0 / 30%); font: 600 .8125rem/1 'DM Sans', Arial, sans-serif; animation: like-pop-in 3s ease-out forwards; }
-.like-pop .like-btn { width: 34px; height: 34px; color: var(--paper); }
-@keyframes like-pop-in { 0% { opacity: 0; transform: translateY(8px); } 8%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(4px); } }
-@media (prefers-reduced-motion: reduce) { .like-btn.burst svg, .pulse-like-scrim, .pulse-like-box, .like-pop { animation: none; } .like-ring.is-counting circle { animation-duration: 3s; } }
+@media (prefers-reduced-motion: reduce) { .like-btn.burst svg, .pulse-like-scrim, .pulse-like-box { animation: none; } .like-ring.is-counting circle { animation-duration: 3s; } }
 
 /* Slider: no save button; the average reader's mark appears once you have answered */
 .slider-wrap { position: relative; }
@@ -1068,9 +1062,10 @@ html[data-theme="dark"] .readers { background: #efece5; border-color: transparen
 .readers-long { display: none; }
 @keyframes readers-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 @media (min-width: 900px) {
-  .date-copy { display: flex; align-items: center; gap: 16px; text-align: left; }
-  .date-copy time { display: block; }
-  .readers { margin-top: 0; padding: 4px 14px 4px 10px; font-size: .8125rem; }
+  .date-copy { display: grid; grid-template-columns: auto auto; grid-template-areas: 'day readers' 'date readers'; align-items: center; column-gap: 18px; }   /* weekday over date, as before; the pill beside them */
+  .date-copy .weekday { grid-area: day; text-align: center; }
+  .date-copy time { grid-area: date; display: block; text-align: center; }
+  .readers { grid-area: readers; margin-top: 0; padding: 4px 14px 4px 10px; font-size: .8125rem; }
   .readers-num { font-size: 1.0625rem; }
   .readers-short { display: none; }
   .readers-long { display: inline; }
@@ -1094,3 +1089,11 @@ html[data-theme="dark"] .reason-badge.is-place { color: #7fdca6; background: rgb
 .readers-stack i:first-child { margin-left: 0; background: #cfc9bb; }
 .readers-stack i:nth-child(2) { background: #a8a193; }
 .readers-stack i:nth-child(3) { background: #8f8878; }
+
+/* Engagement under World at a glance stories: its own row across the card */
+.glance-item { grid-template-areas: 'visual copy' 'facts facts' 'engage engage'; }
+.glance-item.is-image-end { grid-template-areas: 'copy visual' 'facts facts' 'engage engage'; }
+.glance-engage { grid-area: engage; min-width: 0; }
+.glance-engage:empty { display: none; }
+.glance-engage .story-poll { margin-top: 4px; }
+.glance-engage .story-reacts { margin-top: 12px; }
