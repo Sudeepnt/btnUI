@@ -782,7 +782,7 @@ function renderEngageInner(id) {
 const renderEngage = (story) => (story.id && ENGAGE[story.id]) ? `<div class="story-poll" data-poll="${story.id}" data-kind="${ENGAGE[story.id].type}">${renderEngageInner(story.id)}</div>` : '';
 function renderReacts(story) {
   if (!story.id || ENGAGE[story.id]) return '';   // one strategy per story: Reactions only where there is no question
-  const counts = reactCounts(story.id), mine = reactState[story.id] || [];
+  const counts = reactCounts(story.id), mine = (reactState[story.id] || []).slice(0, 1);
   return `<div class="story-reacts" data-react-for="${story.id}" role="group" aria-label="React to this story"><span class="poll-label">React</span><div class="react-row">${REACTIONS.map(([k, emoji, name]) => {
     const on = mine.includes(k);
     return `<button class="react-btn${on ? ' is-on' : ''}" type="button" data-react="${k}" aria-pressed="${on}"><span class="react-emoji" aria-hidden="true">${emoji}</span>${name} <b>${counts[k] + (on ? 1 : 0)}</b></button>`;
@@ -1370,12 +1370,12 @@ storiesRoot.addEventListener('change', (event) => {   // slider: when you let go
 });
 storiesRoot.addEventListener('click', async (event) => {   // answers, predictions, sliders, reactions and result cards
   const react = event.target.closest('[data-react]');
-  if (react) {
-    const id = react.closest('.story-reacts').dataset.reactFor, k = react.dataset.react, list = reactState[id] || [];
-    reactState[id] = list.includes(k) ? list.filter((x) => x !== k) : [...list, k];
+  if (react) {   // one reaction at a time: choosing another moves your choice, tapping yours again takes it back
+    const id = react.closest('.story-reacts').dataset.reactFor, k = react.dataset.react, current = (reactState[id] || [])[0];
+    reactState[id] = current === k ? [] : [k];
     saveJson(reactKey, reactState);
     react.closest('.story-reacts').outerHTML = renderReacts({ id });
-    storiesRoot.querySelector(`[data-react-for="${id}"] [data-react="${k}"]`)?.focus();
+    if (event.detail === 0) storiesRoot.querySelector(`[data-react-for="${id}"] [data-react="${k}"]`)?.focus();   // keep the keyboard place; a mouse click needs no ring
     return;
   }
   const vote = event.target.closest('[data-poll-vote]'), card = event.target.closest('[data-share-card]');
