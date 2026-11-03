@@ -459,19 +459,12 @@ const pulseClips = [
 
 function renderPulse() {
   const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l11-6.5z"/></svg>';
-  const cards = pulseClips.map((clip, index) => clip.ad ? `
-      <li class="pulse-item">
-        <div class="pulse-card is-ad" role="group" aria-label="Advertisement: ${escapeStoryText(clip.title)}">
-          <span class="pulse-tag">Ad · ${clip.length}</span>
-          <strong class="pulse-title">${escapeStoryText(clip.title)}</strong>
-          <span class="pulse-play" aria-hidden="true">${playIcon}</span>
-        </div>
-        <span class="pulse-won">${escapeStoryText(clip.won)}</span>
-      </li>` : `
+  const shown = pulseClips.filter((clip) => !clip.ad).slice(0, 3);   // three clips, never more (the paid "Clip break" slot is not shown for now)
+  const cards = shown.map((clip) => `
       <li class="pulse-item">
         <div class="pulse-card ${categoryClass(clip.category)}" role="group" aria-label="Clip: ${escapeStoryText(clip.title)}">
           <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=8" poster="pulse/${clip.clip}.pulse.jpg?v=8" loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
-          <button class="pulse-hit" type="button" data-pulse-clip aria-label="Play or mute clip: ${escapeStoryText(clip.title)}"></button>
+          <button class="pulse-hit" type="button" data-pulse-clip aria-label="Play or pause clip: ${escapeStoryText(clip.title)}"></button>
           <span class="pulse-play" aria-hidden="true">${playIcon}</span>
           <div class="swipe-copy pulse-copy">
             <span class="swipe-tags"><span class="swipe-category">${escapeStoryText(clip.category)}</span></span>
@@ -487,8 +480,8 @@ function renderPulse() {
   return `
     <section class="pulse-block" aria-labelledby="pulse-heading">
       <div class="section-break" aria-hidden="true"><span></span><span></span><span></span></div>
-      <header class="section-marker"><h2 id="pulse-heading">Pulse</h2>${storyCount(pulseClips.filter((c) => !c.ad).length, 'clip', 'clips')}</header>
-      <ul class="pulse-rail" tabindex="0" aria-label="Short video clips. Swipe or scroll sideways.">${cards}</ul>
+      <header class="section-marker"><h2 id="pulse-heading">Pulse</h2>${storyCount(shown.length, 'clip', 'clips')}</header>
+      <ul class="pulse-rail" aria-label="Short video clips">${cards}</ul>
     </section>`;
 }
 
