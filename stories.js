@@ -470,7 +470,7 @@ function renderPulse() {
       </li>` : `
       <li class="pulse-item">
         <div class="pulse-card ${categoryClass(clip.category)}" role="group" aria-label="Clip: ${escapeStoryText(clip.title)}">
-          <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=7" poster="pulse/${clip.clip}.pulse.jpg?v=7" loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
+          <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=8" poster="pulse/${clip.clip}.pulse.jpg?v=8" loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
           <button class="pulse-hit" type="button" data-pulse-clip aria-label="Play or mute clip: ${escapeStoryText(clip.title)}"></button>
           <span class="pulse-play" aria-hidden="true">${playIcon}</span>
           <div class="swipe-copy pulse-copy">
