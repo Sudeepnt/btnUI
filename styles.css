@@ -380,8 +380,8 @@ body {
 
 .glance-section { margin: 0 9px; padding-top: 13px; scroll-margin-top: var(--masthead-height); }
 .glance-section .section-marker { margin-bottom: 28px; }
-.glance-item { display: grid; grid-template-columns: minmax(112px, 37%) minmax(0, 1fr); grid-template-areas: 'visual copy' 'facts facts'; align-items: center; column-gap: 22px; row-gap: 12px; padding: 26px 1px 28px; border-top: 2px solid #cdc8bd; }
-.glance-item.is-image-end { grid-template-columns: minmax(0, 1fr) minmax(112px, 37%); grid-template-areas: 'copy visual' 'facts facts'; }
+.glance-item { display: grid; grid-template-columns: minmax(112px, 37%) minmax(0, 1fr); grid-template-areas: 'visual copy' 'facts facts' 'engage engage'; align-items: center; column-gap: 22px; row-gap: 12px; padding: 26px 1px 28px; border-top: 2px solid #cdc8bd; }
+.glance-item.is-image-end { grid-template-columns: minmax(0, 1fr) minmax(112px, 37%); grid-template-areas: 'copy visual' 'facts facts' 'engage engage'; }
 .glance-visual { grid-area: visual; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: #dcd8ce; }
 .glance-visual img { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(.78); }
 .glance-copy { grid-area: copy; min-width: 0; }
@@ -566,19 +566,19 @@ html.is-reading, html.is-reading body { overflow: hidden; }
   /* World at a glance: at most three columns however wide the screen is; the top story is big, one more is wide */
   .glance-section { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(250px, calc((100% - 64px) / 3)), 1fr)); grid-auto-flow: row dense; column-gap: 32px; margin: 0; padding-top: 18px; }
   .glance-section > .section-break, .glance-section > .section-marker, .glance-section > .spotlight-placement { grid-column: 1 / -1; }
-  .glance-item, .glance-item.is-image-end { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'visual' 'copy' 'facts'; align-items: start; padding: 18px 0 26px; }
+  .glance-item, .glance-item.is-image-end { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'visual' 'copy' 'facts' 'engage'; align-items: start; padding: 18px 0 26px; }
   .glance-visual { aspect-ratio: 16 / 10; }
   .glance-item h3 { font-size: 1.25rem; }
   .glance-item.is-brief h3 { font-size: 1.25rem; }
   .glance-item p { font-size: .8125rem; }
   .glance-item.is-feature { grid-column: span 2; grid-row: span 2; }
-  .glance-item.is-feature, .glance-item.is-feature.is-image-end { grid-template-rows: minmax(0, 1fr) auto auto; }   /* the picture takes whatever height the two rows leave */
+  .glance-item.is-feature, .glance-item.is-feature.is-image-end { grid-template-rows: minmax(0, 1fr) auto auto auto; }   /* the picture takes whatever height the two rows leave */
   .glance-item.is-feature .glance-visual { position: relative; aspect-ratio: auto; height: 100%; min-height: 300px; }
   .glance-item.is-feature .glance-visual img { position: absolute; inset: 0; }   /* the picture fills the box without sizing it */
   .glance-item.is-feature h3 { font-size: 2.25rem; line-height: 1.08; letter-spacing: -.03em; }
   .glance-item.is-feature .glance-facts p { font-size: .9375rem; }
   .glance-item.is-feature .glance-category { font-size: .75rem; }
-  .glance-item.is-wide, .glance-item.is-wide.is-image-end { grid-column: span 2; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'visual copy' 'facts facts'; column-gap: 28px; align-items: center; }
+  .glance-item.is-wide, .glance-item.is-wide.is-image-end { grid-column: span 2; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'visual copy' 'facts facts' 'engage engage'; column-gap: 28px; align-items: center; }
   .glance-item.is-wide .glance-visual { aspect-ratio: 4 / 3; }
   .glance-item.is-wide h3 { font-size: 1.75rem; line-height: 1.1; }
 
@@ -1047,7 +1047,6 @@ html[data-theme="dark"] .react-btn.is-on { border-color: #e0766b; background: co
 @keyframes like-countdown { to { stroke-dashoffset: 0; } }
 @keyframes like-fade { from { opacity: 0; } }
 @keyframes like-rise { from { opacity: 0; transform: translateY(10px) scale(.96); } }
-.glance-item { position: relative; }
 @media (prefers-reduced-motion: reduce) { .like-btn.burst svg, .pulse-like-scrim, .pulse-like-box { animation: none; } .like-ring.is-counting circle { animation-duration: 3s; } }
 
 /* Slider: no save button; the average reader's mark appears once you have answered */
@@ -1096,8 +1095,6 @@ html[data-theme="dark"] .reason-badge.is-place { color: #7fdca6; background: rgb
 .readers-stack i:nth-child(3) { background: #8f8878; }
 
 /* Engagement under World at a glance stories: its own row across the card */
-.glance-item { grid-template-areas: 'visual copy' 'facts facts' 'engage engage'; }
-.glance-item.is-image-end { grid-template-areas: 'copy visual' 'facts facts' 'engage engage'; }
 .glance-engage { grid-area: engage; min-width: 0; }
 .glance-engage:empty { display: none; }
 .glance-engage .story-poll { margin-top: 4px; }
@@ -1126,3 +1123,10 @@ html[data-theme="dark"] .reason-badge.is-place { color: #7fdca6; background: rgb
 .card-popup-actions .card-popup-share { background: #fff; color: #16150f; }
 .card-popup-actions button[hidden] { display: none; }
 .card-popup button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+/* The glance card's own paragraph rule (.glance-item p) must not restyle the engagement text */
+.story-poll .poll-q { margin: 6px 0 12px; color: var(--ink); font: 700 1.125rem/1.25 Newsreader, Georgia, serif; letter-spacing: -.01em; text-wrap: balance; }
+.story-poll .poll-note { margin: 8px 0 0; color: var(--quiet-ink); font: .8125rem/1.3 'DM Sans', Arial, sans-serif; }
+.story-poll .slider-you { margin: 8px 0 0; color: var(--quiet-ink); font: .875rem/1.3 'DM Sans', Arial, sans-serif; }
+.story-poll .engage-foot .poll-note, .story-poll .engage-foot .slider-you { margin: 0; }
+.slider { height: 36px; }   /* a bigger touch area for the drag handle */
