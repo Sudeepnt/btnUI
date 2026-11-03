@@ -634,7 +634,7 @@ function renderReason(story) {
   return r ? `<p class="story-reason"><span class="reason-badge is-${r.kind}">${escapeStoryText(r.text)}</span></p>` : '';
 }
 
-// ---- ENGAGEMENT STRATEGIES. Every Prime story gets exactly ONE strategy, never two or three, chosen from what the news is:
+// ---- ENGAGEMENT STRATEGIES. Only the 20 most interesting of the 50 stories get one, and then exactly ONE, never two or three, chosen from what the news is:
 //   Yes / No    a personal or civic choice ("Would you...?", "Should your city...?"): consumer products, services, everyday decisions
 //   Agree / Disagree   a contested claim or policy: rules and regulation, "X is better than Y", public-money questions
 //   Prediction  a forward-looking event that can be checked later (launch, trial, deadline): scored on the reader's record, no money
@@ -654,8 +654,6 @@ const ENGAGE = {
   '293873247e6ba2c1': { type: 'predict', q: 'Will a phone with a 2nm chip be on sale before 2027?', labels: ['Yes, before 2027', 'No, later'], by: 'December 31, 2026' },
   // 2 Satellite broadband reaches remote schools: public-money question
   'ec0d5009476c4c94': poll('Satellite internet for remote schools should be free.', AD),
-  // 4 Open-source OS in public offices: contested policy
-  '6526647b6166458f': poll('Every government office should run on open-source software.', AD),
   // 5 Faster-charging batteries for city buses: civic choice
   '402ad39f9a1b17ab': poll('Should your city switch every bus to electric?', YN),
   // 6 AI agents move from prompts to tasks: trust
@@ -672,41 +670,27 @@ const ENGAGE = {
   '6cad623749cfa265': { type: 'predict', q: 'Will humanoid robots work a full shift in a major warehouse by 2027?', labels: ['Yes, by 2027', 'No, later'], by: 'December 31, 2027' },
   // 14 Regulators draft rules for AI ads: contested policy
   '2cf54d72426f9a35': poll('AI-made ads should always be labelled.', AD),
-  // 16 Undersea cable project: security of shared infrastructure
-  '7a5b1302f922c53b': poll('Undersea cables should be protected like critical infrastructure.', AD),
   // 18 Streaming giant tests a cheaper ad tier: consumer choice
   '28b9fedabc16067f': poll('Would you watch ads to pay less for streaming?', YN),
-  // 19 Wearable sensors after surgery: a checkable shift in practice
-  '2a28d3dfce306093': { type: 'predict', q: 'Will hospitals send most surgery patients home with a wearable sensor by 2028?', labels: ['Yes, by 2028', 'No, later'], by: 'December 31, 2028' },
   // 20 Smaller teams build faster: jobs
   'f33a68d18fc8f517': { type: 'slider', kicker: 'How concerned are you?', q: 'AI replacing entry-level coding jobs', lo: 'Not worried', hi: 'Very worried', word: 'worried', avg: 64 },
   // ---- World at a glance: one strategy per story, same rules (keyed by position in the section)
   // 1 The chip race moves beyond the processor: a trend, nothing to vote on
   // 2 Agents find a place in everyday work: trust
   'glance-2': { type: 'slider', kicker: 'How much would you hand over?', q: 'AI agents doing parts of your everyday work', lo: 'Nothing', hi: 'Everything', word: 'comfortable', avg: 52 },
-  // 3 Smaller teams are shipping faster: contested claim
-  'glance-3': poll('Small teams beat big teams.', AD),
   // 4 A new wave of devices puts AI on the go: consumer choice
   'glance-4': poll('Would you wear an AI device all day?', YN),
   // 5 Countries redraw the map for advanced chips: a checkable event
   'glance-5': { type: 'predict', q: 'Will the US and China agree a chip trade deal by 2028?', labels: ['Yes, by 2028', 'No, later'], by: 'December 31, 2028' },
-  // 6 The browser becomes a workspace for agents: contested claim
-  'glance-6': poll('The browser will replace most of your apps.', AD),
-  // 7 The interface after the chat window: consumer choice
-  'glance-7': poll('Would you rather talk to your devices than type?', YN),
-  // 8 Search starts to answer the next question: trust
-  'glance-8': { type: 'slider', kicker: 'How much do you trust it?', q: 'AI answers instead of a list of links', lo: 'Not at all', hi: 'Completely', word: 'trusting', avg: 46 },
   // 9 Private data becomes useful context: privacy trade-off
   'glance-9': poll('Would you share private data with an assistant to get better help?', YN),
-  // 10 Clear controls make complex tools easier to trust: contested claim
-  'glance-10': poll('Every AI tool should show exactly what it can access.', AD),
-  // 11 Smaller models move onto the phone: a checkable event
-  'glance-11': { type: 'predict', q: 'Will your next phone run a capable AI model fully offline by 2027?', labels: ['Yes, by 2027', 'No, later'], by: 'December 31, 2027' },
   // 12 Data center power becomes the bottleneck: risk
   'glance-12': { type: 'slider', kicker: 'How worried are you?', q: 'AI’s appetite for electricity', lo: 'Not worried', hi: 'Very worried', word: 'worried', avg: 57 },
   // 13 Early customers shape the first product: no entry, so Reactions. (Also Reactions: 1.)
   // No entry (Reactions) in the Prime section: 3 quantum error correction, 10 cloud capacity, 13 chip stocks, 15 software prices, 17 voice assistants.
 };
+// Only 20 of the 50 stories carry an engagement strategy (the interesting ones): 17 above plus these 3 with Reactions. All others show none.
+const REACT_ON = new Set(['1a0ad868f6c9c489', 'ec45826166dfe7e5', 'glance-1']);
 const REACTIONS = [['impressive', '🤯', 'Impressive'], ['concerning', '😬', 'Concerning'], ['overhyped', '🙄', 'Overhyped'], ['unknown', '💡', 'Didn’t know']];
 const stateKey = 'bought-engage', reactKey = 'bought-reacts';
 const readJson = (k) => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch (_) { return {}; } };
@@ -763,7 +747,7 @@ function renderEngageInner(id) {
 }
 const renderEngage = (story) => (story.id && ENGAGE[story.id]) ? `<div class="story-poll" data-poll="${story.id}" data-kind="${ENGAGE[story.id].type}">${renderEngageInner(story.id)}</div>` : '';
 function renderReacts(story) {
-  if (!story.id || ENGAGE[story.id]) return '';   // one strategy per story: Reactions only where there is no question
+  if (!story.id || ENGAGE[story.id] || !REACT_ON.has(story.id)) return '';   // one strategy per story, and only 20 of the 50 stories get one at all
   const counts = reactCounts(story.id), mine = (reactState[story.id] || []).slice(0, 1);
   return `<div class="story-reacts${mine.length ? ' has-choice' : ''}" data-react-for="${story.id}" role="group" aria-label="React to this story"><span class="poll-label">React</span><div class="react-row">${REACTIONS.map(([k, emoji, name]) => {
     const on = mine.includes(k);
@@ -939,7 +923,7 @@ function renderGlances() {
           <div><h4>Why it matters</h4><p>${escapeStoryText(story.matters)}</p></div>
           <div class="glance-byline-row">${renderByline(story, true, readTimeLabel(number, story))}</div>
         </div>
-        <div class="glance-engage">${renderEngage({ id: `glance-${index + 1}` })}${renderReacts({ id: `glance-${index + 1}` })}</div>
+        ${(ENGAGE[`glance-${index + 1}`] || REACT_ON.has(`glance-${index + 1}`)) ? `<div class="glance-engage">${renderEngage({ id: `glance-${index + 1}` })}${renderReacts({ id: `glance-${index + 1}` })}</div>` : ''}
       </article>`;
     return item + (glanceSpotlights.has(index + 1) ? renderSpotlightPlacement(SPOTLIGHT_PRIME + 1 + glanceSpotlights.get(index + 1)) : '');
   }).join('');

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#efece5">
+  <meta name="theme-color" content="#151412">
   <title>Bought. — Today's issue</title>
   <meta name="description" content="Today's issue: the news, as short videos you can watch.">
   <!-- Link previews: these need absolute https addresses. SITE_URL in pipeline/share_pages.py must match the real domain. -->
@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Today's issue: the news, as short videos you can watch.">
   <meta name="twitter:image" content="https://btnui.vercel.app/share/site.jpg">
   <link rel="stylesheet" href="styles.css?v=97">
-  <script>try{var t=localStorage.getItem('bought-theme');if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{var t=localStorage.getItem('bought-theme');if(t!=='light')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 </head>
 <body>
   <main class="page">
@@ -181,7 +181,7 @@
 
   <script src="views.js?v=1"></script>
   <script src="leave-confirm.js?v=1"></script>
-  <script src="theme.js?v=1"></script>
+  <script src="theme.js?v=2"></script>
   <script src="language.js?v=8"></script>
   <script>
     // Use the pipeline feed when it exists (prime stories and the podcast episode); otherwise the built-in samples.
@@ -194,7 +194,7 @@
     (async () => {
       await window.liveFeedReady;
       for (const src of ['stories.js', 'completion.js', 'issue-end.js']) {
-        await window.boughtLoadScript(src + '?v=67');
+        await window.boughtLoadScript(src + '?v=68');
       }
     })();
   </script>
