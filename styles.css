@@ -1055,7 +1055,7 @@ html[data-theme="dark"] .react-btn.is-on { border-color: #e0766b; background: co
 @media (min-width: 600px) { .readers { margin-right: 6px; padding: 6px 14px 5px; font-size: .8125rem; } .readers-num { font-size: 1.009rem; } }
 @media (max-width: 899px) {   /* the page is a phone-width column here: every pixel goes to the date: no flanking rules, slightly smaller type, a tighter pill */
   .issue-date::before, .issue-date::after { display: none; }
-  .masthead .wordmark { font-size: 23px; }
+  .masthead .wordmark img { height: 22px; }
   .masthead .weekday { font-size: 12px; }
   .masthead .date-copy time { font-size: 11px; }
   .masthead .date-copy { margin: 0 3px; }
@@ -1141,3 +1141,11 @@ html[data-theme="dark"] .story-poll .poll-share:hover { background: rgb(242 189 
 .story-reacts.has-choice .react-btn:not(.is-on) { opacity: .8; }
 /* the answer in "You voted ..." is a little bolder than the rest of the line */
 .story-poll .poll-note b { color: var(--ink); font-weight: 700; }
+
+/* The Bought. logo in the top bar: the black one on the paper theme, the white one on dark */
+.wordmark { display: block; line-height: 0; }
+.wordmark img { display: block; width: auto; height: 27px; }
+@media (min-width: 900px) { .wordmark img { height: 34px; } }   /* the old text wordmark was larger here too */
+.wordmark .logo-dark { display: none; }
+html[data-theme="dark"] .wordmark .logo-light { display: none; }
+html[data-theme="dark"] .wordmark .logo-dark { display: block; }
