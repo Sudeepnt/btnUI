@@ -701,7 +701,7 @@ html.is-reading, html.is-reading body { overflow: hidden; }
 /* The day in numbers, and the classifieds right under it. They close the Prime, the Swipe cards and World at a glance. */
 .day-numbers, .classifieds { grid-column: 1 / -1; margin: 28px 9px 0; }
 .glance-section > .day-numbers, .glance-section > .classifieds { margin-right: 0; margin-left: 0; }
-.day-numbers { padding: 14px 0 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); color: var(--ink); }
+.day-numbers { padding: 14px 0 0; border-top: 7px double var(--ink); border-bottom: 1px solid var(--rule); color: var(--ink); }
 .day-numbers header, .classifieds header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .day-numbers header { padding: 0 0 12px; }
 .day-numbers h3 { margin: 0; font: 700 .75rem/1.2 'DM Sans', Arial, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
