@@ -457,18 +457,44 @@ const pulseClips = [
   { category: 'Tech Geopolitics', title: 'Countries redraw the map for advanced chips', clip: 'chip-map', happened: 'Countries are redrawing the map for advanced chips.', matters: 'Chips are now a national priority tied to trade and security.', length: '0:22' },
 ];
 
+// ---- Likes. A heart on every Pulse clip and every "World at a glance" story, kept on this device. After a Pulse clip has played to the
+// end, a "Liked it?" popup shows for 3 seconds (with a countdown) before the next clip loads; in the glance section, a story that has
+// been fully in view for 3 seconds gets the same popup, once per visit. Like counts are not shown: they would be made up until a backend exists.
+const likeKey = 'bought-likes';
+const likes = (() => { try { return JSON.parse(localStorage.getItem(likeKey) || '{}') || {}; } catch (_) { return {}; } })();
+const HEART_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.500s-7.500-4.600-9.600-9.200C1 8 3 4.800 6.200 4.800c1.900 0 3.200 1 3.800 2.200.6-1.200 1.900-2.200 3.800-2.200C17 4.800 19 8 17.600 11.300 15.500 15.900 12 20.500 12 20.500z" transform="translate(1.200 .6)" /></svg>';
+const likeBtn = (key, cls = '') => `<button class="like-btn ${cls}${likes[key] ? ' is-liked' : ''}" type="button" data-like="${key}" aria-pressed="${!!likes[key]}" aria-label="Like" title="Like">${HEART_SVG}</button>`;
+function toggleLike(key) {
+  if (likes[key]) delete likes[key]; else likes[key] = true;
+  try { localStorage.setItem(likeKey, JSON.stringify(likes)); } catch (_) { /* kept for this visit */ }
+  document.querySelectorAll(`[data-like="${key}"]`).forEach((b) => {
+    b.classList.toggle('is-liked', !!likes[key]);
+    b.setAttribute('aria-pressed', String(!!likes[key]));
+    if (likes[key]) { b.classList.remove('burst'); void b.offsetWidth; b.classList.add('burst'); }
+  });
+}
+
 function renderPulse() {
   const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5v13l11-6.5z"/></svg>';
   const shown = pulseClips.filter((clip) => !clip.ad).slice(0, 3);   // three clips, never more (the paid "Clip break" slot is not shown for now)
   const cards = shown.map((clip) => `
       <li class="pulse-item">
         <div class="pulse-card ${categoryClass(clip.category)}" data-clip="${clip.clip}" role="group" aria-label="Clip: ${escapeStoryText(clip.title)}">
-          <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=8" poster="pulse/${clip.clip}.pulse.jpg?v=8" loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
+          <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=8" poster="pulse/${clip.clip}.pulse.jpg?v=8" playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
           <button class="pulse-hit" type="button" data-pulse-clip aria-label="Play or pause clip: ${escapeStoryText(clip.title)}"></button>
           <span class="pulse-play" aria-hidden="true">${playIcon}</span>
           <div class="pulse-actions">
+            ${likeBtn(`pulse-${clip.clip}`, 'pulse-action')}
             <button class="pulse-action" type="button" data-pulse-share aria-label="Share: ${escapeStoryText(clip.title)}" title="Share"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="18" cy="19" r="2" /><path d="m8 11 8-5M8 13l8 5" /></svg></button>
             <button class="pulse-action" type="button" data-pulse-share-video hidden aria-label="Share the video file: ${escapeStoryText(clip.title)}" title="Share the video"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10 5-3v10l-5-3" /></svg></button>
+          </div>
+          <div class="pulse-like" hidden role="dialog" aria-label="Liked it?">
+            <button class="pulse-like-scrim" type="button" data-like-stay aria-label="Stay on this clip"></button>
+            <div class="pulse-like-box">
+              <span class="like-ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" /></svg>${likeBtn(`pulse-${clip.clip}`, 'like-big')}</span>
+              <p class="pulse-like-q">Liked it?</p>
+              <p class="pulse-like-next" aria-live="polite"></p>
+            </div>
           </div>
           <div class="swipe-copy pulse-copy">
             <span class="swipe-tags"><span class="swipe-category">${escapeStoryText(clip.category)}</span></span>
@@ -557,6 +583,18 @@ if (window.liveFeed && window.liveFeed.prime && window.liveFeed.prime.length) {
   })));
 }
 
+// ---- "Most read today": exactly ONE story in the whole issue carries this: the Most viewed badge plus a "2,341 read this" strip with
+// a few reader circles. Any other most-viewed / most-read / most-glanced badge (from the feed or the hand-written samples) is dropped.
+// SAMPLE number: there is no reader analytics yet; mostReadToday() is the one place to return the real top story and its count.
+function mostReadToday() { return { id: '5a04354ee842f3fe', readers: 2341 }; }
+(() => {
+  [...sampleStories, ...imageStories, ...glanceStories].forEach((st) => { st.badges = (st.badges || []).filter((b) => !/^most-/.test(b.id)); });
+  const top = mostReadToday();
+  const story = sampleStories.find((st) => st.id === top.id) || sampleStories[0];
+  story.badges = [...story.badges, { id: 'most-viewed', label: 'Most viewed' }];
+  story.readers = top.readers;
+})();
+
 const JOURNALIST_NAME = 'Nastya';
 const storyCount = (count, one = 'story', many = 'stories') => `<span class="section-count">${count} ${count === 1 ? one : many}</span>`;
 
@@ -583,6 +621,35 @@ function readMinutes(...parts) {
 function readTimeLabel(number, story) {
   const detail = story.link ? [] : articleDetails[number - 1] || [story.happened, story.matters];
   return `${readMinutes(story.deck, story.happened, story.matters, ...detail)} min read`;
+}
+
+// ---- "Stories that know a little about you": an honest reason on a story ("Because you read AI", "Near you · Bengaluru"), on at most 3
+// stories per issue (2 by topic, 1 by place). It only labels; it does not re-rank anything. WHERE THE DATA COMES FROM IS NOT DECIDED:
+// personalSignals() is the one place to change. Today it reads a profile from localStorage ('bought-profile', e.g.
+// {"topics":["AI"],"city":"Bengaluru"}) and otherwise uses a SAMPLE profile. Real options: the on-device reading history (private, no
+// backend), a signed-in account, or a city the reader picks. STORY_PLACES says which stories are local to a place: also SAMPLE data.
+const SAMPLE_PROFILE = { topics: ['AI'], city: 'Bengaluru' };
+const STORY_PLACES = { '8d12cdc02eef3e38': 'Bengaluru' };   // sample: "Cloud providers expand server capacity as demand rises"
+function personalSignals() {
+  try { const p = JSON.parse(localStorage.getItem('bought-profile') || 'null'); if (p && typeof p === 'object') return { topics: p.topics || [], city: p.city || null }; } catch (_) { /* use the sample */ }
+  return SAMPLE_PROFILE;
+}
+let reasonMap = null;
+function buildReasons() {   // story id -> { kind, text }, at most 2 by topic then 1 by place
+  const map = {}, { topics, city } = personalSignals();
+  let byTopic = 0, byPlace = 0;
+  for (const story of sampleStories) {
+    if (!story.id) continue;
+    if (byPlace < 1 && city && STORY_PLACES[story.id] === city) { map[story.id] = { kind: 'place', text: `Near you · ${city}` }; byPlace += 1; }
+    else if (byTopic < 2 && topics.includes(story.category)) { map[story.id] = { kind: 'topic', text: `Because you read ${story.category}` }; byTopic += 1; }
+  }
+  return map;
+}
+function renderReason(story) {
+  if (!story.id) return '';
+  reasonMap = reasonMap || buildReasons();
+  const r = reasonMap[story.id];
+  return r ? `<p class="story-reason"><span class="reason-badge is-${r.kind}">${escapeStoryText(r.text)}</span></p>` : '';
 }
 
 // ---- ENGAGEMENT STRATEGIES. Every Prime story gets exactly ONE strategy, never two or three, chosen from what the news is:
@@ -663,15 +730,12 @@ function renderEngageInner(id) {
   const e = ENGAGE[id], v = engageState[id];
   const head = (kicker) => `<span class="poll-label">${escapeStoryText(kicker)}</span><p class="poll-q" id="poll-q-${id}">${escapeStoryText(e.q)}</p>`;
   const cardBtn = `<div class="result-card" data-card-for="${id}"></div><button class="poll-share" type="button" data-share-card>Share your result</button>`;
-  if (e.type === 'slider') {
-    if (v === undefined) {
-      return `${head(e.kicker)}<input class="slider" type="range" min="0" max="100" value="50" aria-label="${escapeStoryText(e.q)}: ${e.lo} to ${e.hi}">
-        <div class="slider-ends"><span>${e.lo}</span><span>${e.hi}</span></div>
-        <div class="slider-row"><span class="slider-you">You: <b>50</b></span><button class="poll-save" type="button" data-slider-save>Lock in my answer</button></div>`;
-    }
-    return `${head(e.kicker)}<div class="needle" role="img" aria-label="You: ${v}. Average reader: ${e.avg}"><i class="needle-fill" style="width:${v}%"></i><i class="needle-avg" style="left:${e.avg}%"></i><i class="needle-you" style="left:${v}%"></i></div>
+  if (e.type === 'slider') {   // no button: the number is final when you let go, and you can drag again to change it
+    const done = v !== undefined;
+    return `${head(e.kicker)}<div class="slider-wrap"><input class="slider" type="range" min="0" max="100" value="${done ? v : 50}" aria-label="${escapeStoryText(e.q)}: ${e.lo} to ${e.hi}"><i class="slider-avg" style="left:${e.avg}%"${done ? '' : ' hidden'} title="Average reader"></i></div>
       <div class="slider-ends"><span>${e.lo}</span><span>${e.hi}</span></div>
-      <p class="slider-you">You: <b>${v}</b> · Average reader: <b>${e.avg}</b></p>${cardBtn}<p class="poll-note"><button class="poll-change" type="button" data-poll-change>Change my answer</button></p>`;
+      <p class="slider-you">You: <b>${done ? v : 50}</b><span class="slider-avgtext"${done ? '' : ' hidden'}> · Average reader: <b>${e.avg}</b></span></p>
+      <div class="slider-result"${done ? '' : ' hidden'}>${cardBtn}</div>`;
   }
   if (e.type === 'predict') {
     if (v === undefined) {
@@ -768,9 +832,11 @@ function renderStory(story, number, saveKey = number) {
             </button>` : ''}
           </div>
         </div>
+        ${renderReason(story)}
         <h2 id="story-title-${number}"><button class="story-title-button" type="button" data-open-story="${number}" aria-label="Read full story: ${escapeStoryText(story.title)}">${escapeStoryText(story.title)}</button></h2>
         <p class="story-deck">${escapeStoryText(story.deck)}</p>
         <div class="story-byline-row">${renderByline(story, false, readTimeLabel(number, story))}</div>
+        ${story.readers ? `<div class="story-readers"><span class="readers-stack" aria-hidden="true"><i></i><i></i><i></i></span><span><b>${story.readers.toLocaleString('en-US')}</b> read this</span></div>` : ''}
         ${renderEngage(story)}
         ${renderReacts(story)}
         ${story.link
@@ -837,7 +903,7 @@ function renderGlances() {
         <div class="glance-facts">
           <div><h4>What happened</h4><p>${escapeStoryText(story.deck)}</p></div>
           <div><h4>Why it matters</h4><p>${escapeStoryText(story.matters)}</p></div>
-          <div class="glance-byline-row">${renderByline(story, true, readTimeLabel(number, story))}</div>
+          <div class="glance-byline-row">${renderByline(story, true, readTimeLabel(number, story))}${likeBtn(`glance-${number}`, 'glance-like')}</div>
         </div>
       </article>`;
     return item + (glanceSpotlights.has(index + 1) ? renderSpotlightPlacement(SPOTLIGHT_PRIME + 1 + glanceSpotlights.get(index + 1)) : '');
@@ -943,6 +1009,19 @@ function syncMastheadHeight() {
 }
 syncMastheadHeight();
 if ('ResizeObserver' in window) new ResizeObserver(syncMastheadHeight).observe(stickyMasthead);
+
+// ---- "Reading Bought right now" pill in the top bar. SAMPLE number: there is no presence service yet, so readersNow() drifts around a
+// plausible value. For the real thing, count live visitors (a heartbeat endpoint or Supabase Realtime presence) and return that here.
+(() => {
+  const el = document.getElementById('readers-now');
+  if (!el) return;
+  const num = el.querySelector('.readers-num');
+  let n = 1292;
+  const readersNow = () => { n = Math.max(900, n + Math.round((Math.random() - 0.48) * 14)); return n; };
+  const paint = () => { const v = readersNow(); num.textContent = v.toLocaleString('en-US'); el.setAttribute('aria-label', `${v.toLocaleString('en-US')} people reading Bought right now`); };
+  paint();
+  setInterval(() => { if (!document.hidden) paint(); }, 6000);
+})();
 window.addEventListener('resize', syncMastheadHeight);
 
 const swipeCard = storiesRoot.querySelector('.image-swipe-card');
@@ -1084,17 +1163,73 @@ function showActionFeedback(message) {
 // The only control on screen is the progress bar that is part of the picture; there are no media controls or mute button.
 const pulseVideos = () => [...storiesRoot.querySelectorAll('.pulse-video')];
 function pausePulse(except) { pulseVideos().forEach((v) => { if (v !== except) { v.pause(); v.closest('.pulse-card').classList.remove('is-playing'); } }); }
+let likePopup = null;   // { card, timer, tick } while a "Liked it?" popup is counting down
+function hideLikePopup() {
+  if (!likePopup) return;
+  clearTimeout(likePopup.timer); clearInterval(likePopup.tick);
+  likePopup.card.querySelector('.pulse-like').hidden = true;
+  likePopup = null;
+}
+function startPulse(card) {
+  const v = card.querySelector('.pulse-video');
+  hideLikePopup();
+  pausePulse(v);
+  v.muted = false;
+  v.play().then(() => card.classList.add('is-playing')).catch(() => { v.muted = true; v.play().then(() => card.classList.add('is-playing')).catch(() => {}); });
+}
 storiesRoot.addEventListener('click', (event) => {
+  if (event.target.closest('[data-like-stay]')) { hideLikePopup(); return; }   // tap the dimmed picture: stay on this clip
   const hit = event.target.closest('[data-pulse-clip]');
   if (!hit) return;
   const card = hit.closest('.pulse-card');
   const v = card.querySelector('.pulse-video');
-  if (v.paused) {
-    pausePulse(v);
-    v.muted = false;
-    v.play().then(() => card.classList.add('is-playing')).catch(() => { v.muted = true; v.play().then(() => card.classList.add('is-playing')).catch(() => {}); });
-  } else { v.pause(); card.classList.remove('is-playing'); }
+  if (v.paused) startPulse(card);
+  else { v.pause(); card.classList.remove('is-playing'); }
 });
+// A clip that plays to the end: the "Liked it?" popup for 3 seconds, then the next clip loads and plays (the last one just resets).
+pulseVideos().forEach((v) => v.addEventListener('ended', () => {
+  const card = v.closest('.pulse-card'), cards = [...storiesRoot.querySelectorAll('.pulse-card')], next = cards[cards.indexOf(card) + 1];
+  card.classList.remove('is-playing');
+  hideLikePopup();
+  const pop = card.querySelector('.pulse-like'), label = pop.querySelector('.pulse-like-next'), ring = pop.querySelector('.like-ring');
+  let left = 3;
+  const show = () => { label.textContent = next ? `Next clip in ${left}s` : ''; };
+  show(); pop.hidden = false;
+  ring.classList.remove('is-counting'); void ring.offsetWidth; ring.classList.add('is-counting');
+  if (next) next.querySelector('video').preload = 'auto';   // start fetching the next clip now, so it is ready at zero
+  likePopup = {
+    card,
+    tick: setInterval(() => { left = Math.max(1, left - 1); show(); }, 1000),
+    timer: setTimeout(() => {
+      hideLikePopup();
+      if (next) { next.scrollIntoView({ behavior: 'smooth', block: 'center' }); startPulse(next); }
+      else v.currentTime = 0;
+    }, 3000),
+  };
+}));
+// any like tap
+storiesRoot.addEventListener('click', (event) => { const b = event.target.closest('[data-like]'); if (b) toggleLike(b.dataset.like); });
+// Glance stories: fully in view for 3 seconds -> a small "Like this story?" popup for 3 seconds, once per visit and only if not liked yet.
+if ('IntersectionObserver' in window) {
+  const asked = new Set();
+  const dwell = new WeakMap();
+  const askObserver = new IntersectionObserver((entries) => entries.forEach((en) => {
+    const item = en.target, key = item.querySelector('[data-like]')?.dataset.like;
+    clearTimeout(dwell.get(item));
+    if (!en.isIntersecting || !key || asked.has(key) || likes[key]) return;
+    dwell.set(item, setTimeout(() => {
+      asked.add(key);
+      if (likes[key]) return;
+      document.querySelectorAll('.like-pop').forEach((old) => old.remove());   // one popup at a time
+      const pop = document.createElement('div');
+      pop.className = 'like-pop'; pop.setAttribute('role', 'status');
+      pop.innerHTML = `<span>Like this story?</span>${likeBtn(key)}`;
+      item.append(pop);
+      setTimeout(() => pop.remove(), 3000);
+    }, 3000));
+  }), { threshold: 0.8 });
+  storiesRoot.querySelectorAll('.glance-item').forEach((item) => askObserver.observe(item));
+}
 // leaving the page or scrolling a clip out of view stops it
 document.addEventListener('visibilitychange', () => { if (document.hidden) pausePulse(null); });
 if ('IntersectionObserver' in window) {
@@ -1196,6 +1331,17 @@ storiesRoot.addEventListener('input', (event) => {   // slider: show your number
   const slider = event.target.closest('.slider');
   if (slider) slider.closest('.story-poll').querySelector('.slider-you b').textContent = slider.value;
 });
+storiesRoot.addEventListener('change', (event) => {   // slider: when you let go, that number is your answer (drag again to change it)
+  const slider = event.target.closest('.slider');
+  if (!slider) return;
+  const box = slider.closest('.story-poll'), id = box.dataset.poll;
+  engageState[id] = Number(slider.value);
+  saveJson(stateKey, engageState);
+  box.querySelector('.slider-avg').hidden = false;
+  box.querySelector('.slider-avgtext').hidden = false;
+  box.querySelector('.slider-result').hidden = false;
+  showResultCard(box);   // the share card follows your latest number
+});
 storiesRoot.addEventListener('click', async (event) => {   // answers, predictions, sliders, reactions and result cards
   const react = event.target.closest('[data-react]');
   if (react) {
@@ -1206,8 +1352,8 @@ storiesRoot.addEventListener('click', async (event) => {   // answers, predictio
     storiesRoot.querySelector(`[data-react-for="${id}"] [data-react="${k}"]`)?.focus();
     return;
   }
-  const vote = event.target.closest('[data-poll-vote]'), save = event.target.closest('[data-slider-save]'), change = event.target.closest('[data-poll-change]'), card = event.target.closest('[data-share-card]');
-  if (!vote && !save && !change && !card) return;
+  const vote = event.target.closest('[data-poll-vote]'), change = event.target.closest('[data-poll-change]'), card = event.target.closest('[data-share-card]');
+  if (!vote && !change && !card) return;
   const box = event.target.closest('.story-poll'), id = box.dataset.poll;
   if (card) {
     const slot = box.querySelector('.result-card');
@@ -1221,7 +1367,6 @@ storiesRoot.addEventListener('click', async (event) => {   // answers, predictio
     return;
   }
   if (vote) engageState[id] = vote.dataset.pollVote;
-  else if (save) engageState[id] = Number(box.querySelector('.slider').value);
   else delete engageState[id];
   saveJson(stateKey, engageState);
   refreshEngage(box);
