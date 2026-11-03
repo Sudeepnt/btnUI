@@ -585,51 +585,136 @@ function readTimeLabel(number, story) {
   return `${readMinutes(story.deck, story.happened, story.matters, ...detail)} min read`;
 }
 
-// ---- Polls: a one-tap question under certain stories ("Do you want a forest over a data center? Yes / No"). Your vote is kept on
-// this device (localStorage). The percentages are SAMPLE numbers (seeded from the story id, plus your own vote) until a real
-// backend counts everyone's votes: replace pollSplit() with a call to it, nothing else changes.
+// ---- Engagement under Prime stories. Every story with an id can carry ONE question (a poll, a prediction or a sentiment slider)
+// plus a row of one-tap reactions, and every answer can be turned into a branded result card to share.
+// Answers and reactions are kept on this device (localStorage). The crowd numbers (percentages, the average reader, reaction counts)
+// are SAMPLE numbers seeded from the story id, plus your own tap, until a real backend counts everyone: replace crowdFor() and
+// reactCounts() with calls to it and nothing else changes.
 const YN = ['Yes', 'No'], AD = ['Agree', 'Disagree'];
-const POLLS = {
+const ENGAGE = {};
+Object.entries({
   '293873247e6ba2c1': ['Will 2nm chips make a real difference in your next phone?', YN],
   'ec0d5009476c4c94': ['Should satellite internet for remote schools be free?', YN],
   '1a0ad868f6c9c489': ['Will quantum computers matter in your lifetime?', YN],
   '6526647b6166458f': ['Every government office should run on open-source software.', AD],
   '402ad39f9a1b17ab': ['Should your city switch every bus to electric?', YN],
-  '8f4bf0dde4bfd4fb': ['Would you let an AI agent book your trips for you?', YN],
   '5a04354ee842f3fe': ['Do you want a forest over a data center?', YN],
-  'bd16eca1270ba10e': ['Have you ever clicked a phishing link?', YN],
   'f484e19f4ae82b9e': ['Smaller AI models are better than giant ones.', AD],
-  '2e9c7e5be873cc6b': ['Would you let AI take notes at your doctor visit?', YN],
-  '6cad623749cfa265': ['Would you work next to a humanoid robot?', YN],
   '2cf54d72426f9a35': ['AI-made ads should always be labelled.', AD],
   '28b9fedabc16067f': ['Would you watch ads to pay less for streaming?', YN],
   '660713e2158f70fe': ['AI tutors can replace human tutors.', AD],
-  'f33a68d18fc8f517': ['Small teams beat big teams.', AD],
-};
-const pollKey = 'bought-polls';
-let pollVotes = {};
-try { pollVotes = JSON.parse(localStorage.getItem(pollKey) || '{}') || {}; } catch (_) { pollVotes = {}; }
-function pollSplit(id, vote) {   // [share of the first answer, share of the second], in whole percent
-  let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const total = 700 + (h % 900), a = Math.round(total * (0.36 + (h % 33) / 100));
-  const yes = a + (vote === 'a' ? 1 : 0), all = total + (vote ? 1 : 0);
-  const pa = Math.round((yes / all) * 100);
+}).forEach(([id, [q, labels]]) => { ENGAGE[id] = { type: 'poll', q, labels }; });
+// Predictions: readers call it before it happens; it resolves later and is scored on their record (no money involved).
+Object.assign(ENGAGE, {
+  '8f4bf0dde4bfd4fb': { type: 'predict', q: 'Will OpenAI release a new flagship model before March?', labels: ['Yes, before March', 'No, later'], by: 'March 1, 2027' },
+  '6cad623749cfa265': { type: 'predict', q: 'Will humanoid robots work a full shift in a major warehouse by 2027?', labels: ['Yes, by 2027', 'No, later'], by: 'December 31, 2027' },
+  'bd16eca1270ba10e': { type: 'predict', q: 'Will a phishing kit built with AI cause a major breach this year?', labels: ['Yes, this year', 'No'], by: 'December 31, 2026' },
+  // Sliders: for stories where agree / disagree is too flat, strength of feeling is the point.
+  'f33a68d18fc8f517': { type: 'slider', kicker: 'How concerned are you?', q: 'AI replacing entry-level coding jobs', lo: 'Not worried', hi: 'Very worried', word: 'worried', avg: 64 },
+  '2e9c7e5be873cc6b': { type: 'slider', kicker: 'How comfortable are you?', q: 'AI taking notes at your doctor visit', lo: 'Not comfortable', hi: 'Very comfortable', word: 'comfortable', avg: 47 },
+  '8d12cdc02eef3e38': { type: 'slider', kicker: 'How much does it matter?', q: 'Cloud capacity running short as demand rises', lo: 'Not at all', hi: 'A great deal', word: 'concerned', avg: 58 },
+});
+const REACTIONS = [['impressive', '🤯', 'Impressive'], ['concerning', '😬', 'Concerning'], ['overhyped', '🙄', 'Overhyped'], ['unknown', '💡', 'Didn’t know']];
+const stateKey = 'bought-engage', reactKey = 'bought-reacts';
+const readJson = (k) => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch (_) { return {}; } };
+const engageState = readJson(stateKey), reactState = readJson(reactKey);
+const saveJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) { /* kept for this visit */ } };
+const seedOf = (text) => { let h = 0; for (const ch of text) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+function crowdFor(id, mine) {   // poll: [% for the first answer, % for the second]
+  const h = seedOf(id), total = 700 + (h % 900), a = Math.round(total * (0.36 + (h % 33) / 100));
+  const pa = Math.round(((a + (mine === 'a' ? 1 : 0)) / (total + (mine ? 1 : 0))) * 100);
   return [pa, 100 - pa];
 }
-function renderPollInner(id) {
-  const [q, labels] = POLLS[id];
-  const vote = pollVotes[id];
-  const head = `<span class="poll-label">Your take</span><p class="poll-q" id="poll-q-${id}">${escapeStoryText(q)}</p>`;
-  if (!vote) {
-    return `${head}<div class="poll-choices" role="group" aria-labelledby="poll-q-${id}">
-      <button class="poll-choice" type="button" data-poll-vote="a">${labels[0]}</button>
-      <button class="poll-choice" type="button" data-poll-vote="b">${labels[1]}</button></div>`;
+const reactCounts = (id) => Object.fromEntries(REACTIONS.map(([k], i) => [k, 20 + (seedOf(id + k) % (200 - i * 25))]));
+const normalCdf = (z) => 0.5 * (1 + Math.tanh(0.7978845608 * (z + 0.044715 * z ** 3)));   // good enough for "more worried than X% of readers"
+function resultCard(id) {   // what the share card says, from your answer
+  const e = ENGAGE[id], v = engageState[id];
+  if (v === undefined) return null;
+  if (e.type === 'poll') {
+    const split = crowdFor(id, v), mine = v === 'a' ? split[0] : split[1], label = e.labels[v === 'a' ? 0 : 1];
+    return { kicker: 'My take', headline: mine >= 50 ? `${mine}% of readers agree with me` : `I’m in the ${mine}% who said ${label}`, sub: e.q, pct: mine, tail: `I said ${label}` };
   }
-  const split = pollSplit(id, vote);
-  const rows = ['a', 'b'].map((k, i) => `<div class="poll-row${vote === k ? ' is-mine' : ''}"><span class="poll-fill" style="width:${split[i]}%"></span><span class="poll-name">${labels[i]}${vote === k ? ' <i aria-hidden="true">✓</i>' : ''}</span><b>${split[i]}%</b></div>`).join('');
-  return `${head}<div class="poll-results" role="status">${rows}</div><p class="poll-note">You voted ${labels[vote === 'a' ? 0 : 1]}. <button class="poll-change" type="button" data-poll-change>Change</button></p>`;
+  if (e.type === 'slider') {
+    const p = Math.round(normalCdf((v - e.avg) / 24) * 100);
+    return { kicker: 'My take', headline: v >= e.avg ? `I’m more ${e.word} than ${p}% of readers` : `I’m less ${e.word} than ${100 - p}% of readers`, sub: e.q, pct: v, tail: `Me: ${v} · Average reader: ${e.avg}` };
+  }
+  return { kicker: 'My prediction', headline: `I’m calling it: ${e.labels[v === 'a' ? 0 : 1]}`, sub: e.q, pct: null, tail: `Resolves by ${e.by}` };
 }
-const renderPoll = (story) => (story.id && POLLS[story.id]) ? `<div class="story-poll" data-poll="${story.id}">${renderPollInner(story.id)}</div>` : '';
+function renderEngageInner(id) {
+  const e = ENGAGE[id], v = engageState[id];
+  const head = (kicker) => `<span class="poll-label">${escapeStoryText(kicker)}</span><p class="poll-q" id="poll-q-${id}">${escapeStoryText(e.q)}</p>`;
+  const cardBtn = `<div class="result-card" data-card-for="${id}"></div><button class="poll-share" type="button" data-share-card>Share your result</button>`;
+  if (e.type === 'slider') {
+    if (v === undefined) {
+      return `${head(e.kicker)}<input class="slider" type="range" min="0" max="100" value="50" aria-label="${escapeStoryText(e.q)}: ${e.lo} to ${e.hi}">
+        <div class="slider-ends"><span>${e.lo}</span><span>${e.hi}</span></div>
+        <div class="slider-row"><span class="slider-you">You: <b>50</b></span><button class="poll-save" type="button" data-slider-save>Lock in my answer</button></div>`;
+    }
+    return `${head(e.kicker)}<div class="needle" role="img" aria-label="You: ${v}. Average reader: ${e.avg}"><i class="needle-fill" style="width:${v}%"></i><i class="needle-avg" style="left:${e.avg}%"></i><i class="needle-you" style="left:${v}%"></i></div>
+      <div class="slider-ends"><span>${e.lo}</span><span>${e.hi}</span></div>
+      <p class="slider-you">You: <b>${v}</b> · Average reader: <b>${e.avg}</b></p>${cardBtn}<p class="poll-note"><button class="poll-change" type="button" data-poll-change>Change my answer</button></p>`;
+  }
+  if (e.type === 'predict') {
+    if (v === undefined) {
+      return `${head('Open prediction')}<div class="poll-choices" role="group" aria-labelledby="poll-q-${id}">
+        <button class="poll-choice" type="button" data-poll-vote="a">${e.labels[0]}</button><button class="poll-choice" type="button" data-poll-vote="b">${e.labels[1]}</button></div>
+        <p class="poll-note">Resolves automatically once it happens, then scored on your profile as a % accuracy, like a credibility rating. No money involved.</p>`;
+    }
+    const open = Object.keys(engageState).filter((k) => ENGAGE[k] && ENGAGE[k].type === 'predict').length;
+    return `${head('Open prediction')}<div class="predict-called"><b>Your call:</b> ${e.labels[v === 'a' ? 0 : 1]}<span>Resolves by ${e.by}</span></div>
+      <p class="poll-note">You have ${open} open ${open === 1 ? 'prediction' : 'predictions'}. Your accuracy score starts once the first one resolves.</p>${cardBtn}<p class="poll-note"><button class="poll-change" type="button" data-poll-change>Change my call</button></p>`;
+  }
+  if (v === undefined) {   // poll
+    return `${head('Your take')}<div class="poll-choices" role="group" aria-labelledby="poll-q-${id}">
+      <button class="poll-choice" type="button" data-poll-vote="a">${e.labels[0]}</button><button class="poll-choice" type="button" data-poll-vote="b">${e.labels[1]}</button></div>`;
+  }
+  const split = crowdFor(id, v);
+  const rows = ['a', 'b'].map((k, i) => `<div class="poll-row${v === k ? ' is-mine' : ''}"><span class="poll-fill" style="width:${split[i]}%"></span><span class="poll-name">${e.labels[i]}${v === k ? ' <i aria-hidden="true">✓</i>' : ''}</span><b>${split[i]}%</b></div>`).join('');
+  return `${head('Your take')}<div class="poll-results" role="status">${rows}</div>${cardBtn}<p class="poll-note">You voted ${e.labels[v === 'a' ? 0 : 1]}. <button class="poll-change" type="button" data-poll-change>Change</button></p>`;
+}
+const renderEngage = (story) => (story.id && ENGAGE[story.id]) ? `<div class="story-poll" data-poll="${story.id}" data-kind="${ENGAGE[story.id].type}">${renderEngageInner(story.id)}</div>` : '';
+function renderReacts(story) {
+  if (!story.id) return '';
+  const counts = reactCounts(story.id), mine = reactState[story.id] || [];
+  return `<div class="story-reacts" data-react-for="${story.id}" role="group" aria-label="React to this story"><span class="poll-label">React</span><div class="react-row">${REACTIONS.map(([k, emoji, name]) => {
+    const on = mine.includes(k);
+    return `<button class="react-btn${on ? ' is-on' : ''}" type="button" data-react="${k}" aria-pressed="${on}"><span class="react-emoji" aria-hidden="true">${emoji}</span>${name} <b>${counts[k] + (on ? 1 : 0)}</b></button>`;
+  }).join('')}</div></div>`;
+}
+
+// The share card: a small branded image of your answer, made to be saved or posted. Drawn on a canvas so it can be shared as a file.
+async function buildResultCard(id) {
+  const d = resultCard(id), W = 1080, H = 1350, cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  await Promise.all(['700 80px Newsreader', '400 40px "DM Sans"'].map((f) => document.fonts.load(f).catch(() => {})));
+  const accent = getComputedStyle(document.querySelector(`[data-poll="${id}"]`)).getPropertyValue('--cat').trim() || '#ad4038';
+  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#efece5'); g.addColorStop(1, '#bdb6a8');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#16150f'; ctx.font = '700 86px Newsreader, Georgia, serif'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText('Bought', 90, 170); const w = ctx.measureText('Bought').width; ctx.fillStyle = accent; ctx.fillText('.', 90 + w, 170);
+  ctx.fillStyle = accent; ctx.font = '700 30px "DM Sans", Arial, sans-serif'; ctx.fillText(d.kicker.toUpperCase().split('').join(' '), 90, 330);
+  const wrap = (text, font, maxw) => { ctx.font = font; const out = []; let cur = ''; for (const wd of text.split(' ')) { const t = cur ? cur + ' ' + wd : wd; if (ctx.measureText(t).width > maxw && cur) { out.push(cur); cur = wd; } else cur = t; } return out.concat(cur); };
+  let y = 440; ctx.fillStyle = '#16150f';
+  for (const ln of wrap(d.headline, '700 104px Newsreader, Georgia, serif', W - 180).slice(0, 4)) { ctx.fillText(ln, 90, y); y += 120; }
+  y += 20; ctx.fillStyle = '#45403a';
+  for (const ln of wrap(d.sub, '400 44px "DM Sans", Arial, sans-serif', W - 180).slice(0, 3)) { ctx.fillText(ln, 90, y); y += 60; }
+  if (d.pct !== null) {
+    const by = 1050; ctx.fillStyle = 'rgba(22,21,15,.18)'; ctx.beginPath(); ctx.roundRect(90, by, W - 180, 36, 18); ctx.fill();
+    ctx.fillStyle = accent; ctx.beginPath(); ctx.roundRect(90, by, Math.max(36, (W - 180) * d.pct / 100), 36, 18); ctx.fill();
+  }
+  ctx.fillStyle = '#16150f'; ctx.font = '700 40px "DM Sans", Arial, sans-serif'; ctx.fillText(d.tail, 90, 1160);
+  ctx.fillStyle = '#625a51'; ctx.font = '400 32px "DM Sans", Arial, sans-serif'; ctx.fillText('What’s your take?  Today’s issue on Bought.', 90, 1250);
+  return new Promise((res) => cv.toBlob(res, 'image/png'));
+}
+async function showResultCard(box) {
+  const id = box.dataset.poll, slot = box.querySelector('.result-card');
+  if (!slot || engageState[id] === undefined) return;
+  const blob = await buildResultCard(id);
+  const old = slot.querySelector('img'); if (old) URL.revokeObjectURL(old.src);
+  slot.innerHTML = ''; const img = new Image(); img.src = URL.createObjectURL(blob); img.alt = 'Your result card, ready to share'; slot.append(img);
+  slot._blob = blob;
+}
 
 function renderStory(story, number, saveKey = number) {
   const loading = number === 1 ? 'eager' : 'lazy';
@@ -667,7 +752,8 @@ function renderStory(story, number, saveKey = number) {
         <h2 id="story-title-${number}"><button class="story-title-button" type="button" data-open-story="${number}" aria-label="Read full story: ${escapeStoryText(story.title)}">${escapeStoryText(story.title)}</button></h2>
         <p class="story-deck">${escapeStoryText(story.deck)}</p>
         <div class="story-byline-row">${renderByline(story, false, readTimeLabel(number, story))}</div>
-        ${renderPoll(story)}
+        ${renderEngage(story)}
+        ${renderReacts(story)}
         ${story.link
           ? ''
           : `<div class="story-facts">
@@ -1081,15 +1167,48 @@ storiesRoot.addEventListener('click', (event) => {   // Pulse card buttons
   else shareLink({ title: `${title} — Bought. Pulse`, text, url: sharePageUrl(`pulse-${card.dataset.clip}`) });
 });
 
-storiesRoot.addEventListener('click', (event) => {   // poll votes
-  const vote = event.target.closest('[data-poll-vote]'), change = event.target.closest('[data-poll-change]');
-  if (!vote && !change) return;
-  const box = (vote || change).closest('.story-poll'), id = box.dataset.poll;
-  if (vote) pollVotes[id] = vote.dataset.pollVote; else delete pollVotes[id];
-  try { localStorage.setItem(pollKey, JSON.stringify(pollVotes)); } catch (_) { /* the vote stays for this visit */ }
-  box.innerHTML = renderPollInner(id);
-  box.querySelector(vote ? '.poll-row.is-mine' : '.poll-choice')?.focus?.();
+function refreshEngage(box) {
+  const id = box.dataset.poll;
+  box.innerHTML = renderEngageInner(id);
+  showResultCard(box);
+}
+storiesRoot.querySelectorAll('.story-poll').forEach((box) => { if (engageState[box.dataset.poll] !== undefined) showResultCard(box); });
+storiesRoot.addEventListener('input', (event) => {   // slider: show your number as you drag
+  const slider = event.target.closest('.slider');
+  if (slider) slider.closest('.story-poll').querySelector('.slider-you b').textContent = slider.value;
 });
+storiesRoot.addEventListener('click', async (event) => {   // answers, predictions, sliders, reactions and result cards
+  const react = event.target.closest('[data-react]');
+  if (react) {
+    const id = react.closest('.story-reacts').dataset.reactFor, k = react.dataset.react, list = reactState[id] || [];
+    reactState[id] = list.includes(k) ? list.filter((x) => x !== k) : [...list, k];
+    saveJson(reactKey, reactState);
+    react.closest('.story-reacts').outerHTML = renderReacts({ id });
+    storiesRoot.querySelector(`[data-react-for="${id}"] [data-react="${k}"]`)?.focus();
+    return;
+  }
+  const vote = event.target.closest('[data-poll-vote]'), save = event.target.closest('[data-slider-save]'), change = event.target.closest('[data-poll-change]'), card = event.target.closest('[data-share-card]');
+  if (!vote && !save && !change && !card) return;
+  const box = event.target.closest('.story-poll'), id = box.dataset.poll;
+  if (card) {
+    const slot = box.querySelector('.result-card');
+    if (!slot._blob) await showResultCard(box);
+    const file = new File([slot._blob], 'bought-my-take.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'My take on Bought.', url: sharePageUrl(id) }); } catch (error) { if (error.name !== 'AbortError') showActionFeedback('Could not share the card'); }
+    } else {   // desktop: save the picture
+      const a = document.createElement('a'); a.href = URL.createObjectURL(slot._blob); a.download = 'bought-my-take.png'; a.click(); showActionFeedback('Card saved');
+    }
+    return;
+  }
+  if (vote) engageState[id] = vote.dataset.pollVote;
+  else if (save) engageState[id] = Number(box.querySelector('.slider').value);
+  else delete engageState[id];
+  saveJson(stateKey, engageState);
+  refreshEngage(box);
+  box.querySelector(change ? (box.dataset.kind === 'slider' ? '.slider' : '.poll-choice') : '.poll-change')?.focus?.();
+});
+
 
 storiesRoot.addEventListener('click', (event) => {
   const button = event.target.closest('[data-action]');

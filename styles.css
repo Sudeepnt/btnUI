@@ -988,3 +988,35 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 .poll-change { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 @keyframes poll-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .poll-fill { animation: none; } .poll-choice { transition: none; } }
+
+/* Predictions, sentiment slider, reactions and result cards */
+.poll-save, .poll-share { min-height: 42px; padding: 0 18px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); font: 700 .875rem/1 'DM Sans', Arial, sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.poll-share { margin-top: 12px; background: transparent; color: var(--ink); }
+.poll-share:hover { background: var(--ink); color: var(--paper); }
+.poll-save:focus-visible, .poll-share:focus-visible, .react-btn:focus-visible, .slider:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.predict-called { display: grid; gap: 2px; padding: 12px 14px; border: 1.5px solid var(--ink); border-radius: 12px; font: 600 .9375rem/1.3 'DM Sans', Arial, sans-serif; }
+.predict-called span { color: var(--quiet-ink); font-weight: 400; font-size: .8125rem; }
+.slider { width: 100%; height: 28px; margin: 4px 0 0; background: transparent; accent-color: var(--cat, #ad4038); cursor: pointer; }
+.slider-ends { display: flex; justify-content: space-between; gap: 12px; margin-top: 2px; color: var(--ink); font: 700 .6875rem/1.3 'DM Sans', Arial, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.slider-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.slider-you { margin: 8px 0 0; color: var(--quiet-ink); font: .875rem/1.3 'DM Sans', Arial, sans-serif; }
+.slider-row .slider-you { margin: 0; }
+.slider-you b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.needle { position: relative; height: 10px; margin: 18px 0 8px; border-radius: 99px; background: rgb(128 120 108 / 28%); }
+.needle-fill { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: color-mix(in srgb, var(--cat, #ad4038) 55%, transparent); animation: poll-grow .5s ease-out; transform-origin: left; }
+.needle-you, .needle-avg { position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; }
+.needle-you { background: var(--cat, #ad4038); border: 3px solid var(--paper); box-shadow: 0 1px 4px rgb(0 0 0 / 35%); }
+.needle-avg { width: 4px; height: 22px; margin: -11px 0 0 -2px; border-radius: 2px; background: var(--ink); }
+.result-card:empty { display: none; }
+.result-card { margin-top: 14px; }
+.result-card img { display: block; width: min(100%, 300px); aspect-ratio: 4 / 5; height: auto; border-radius: 14px; box-shadow: 0 6px 22px rgb(0 0 0 / 22%); }
+.story-reacts { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.react-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.react-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 13px; border: 1.5px solid var(--rule); border-radius: 999px; background: transparent; color: var(--ink); font: 600 .875rem/1 'DM Sans', Arial, sans-serif; cursor: pointer; transition: background .15s, border-color .15s, transform .1s; -webkit-tap-highlight-color: transparent; }
+.react-btn:hover { border-color: var(--ink); }
+.react-btn:active { transform: scale(.96); }
+.react-btn b { color: var(--quiet-ink); font: 600 .8125rem/1 ui-monospace, 'SF Mono', Menlo, monospace; }
+.react-btn.is-on { border-color: var(--cat, #ad4038); background: color-mix(in srgb, var(--cat, #ad4038) 16%, transparent); }
+.react-btn.is-on b { color: var(--ink); }
+.react-emoji { font-size: 1.05rem; line-height: 1; }
+@media (prefers-reduced-motion: reduce) { .react-btn { transition: none; } .needle-fill { animation: none; } }

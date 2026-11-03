@@ -19,7 +19,7 @@
   <meta name="twitter:title" content="Bought. — Today's issue">
   <meta name="twitter:description" content="Today's issue: the news, as short videos you can watch.">
   <meta name="twitter:image" content="https://btnui.vercel.app/share/site.jpg">
-  <link rel="stylesheet" href="styles.css?v=69">
+  <link rel="stylesheet" href="styles.css?v=70">
   <script>try{var t=localStorage.getItem('bought-theme');if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 </head>
 <body>
@@ -138,7 +138,7 @@
         if (res.ok) window.liveFeed = await res.json();
       } catch (e) { /* no feed: keep the sample stories */ }
       for (const src of ['stories.js', 'completion.js', 'issue-end.js']) {
-        await window.boughtLoadScript(src + '?v=53');
+        await window.boughtLoadScript(src + '?v=54');
       }
     })();
   </script>
