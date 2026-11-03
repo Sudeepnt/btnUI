@@ -754,13 +754,12 @@ function resultCard(id) {   // what the share card says, from your answer
 function renderEngageInner(id) {
   const e = ENGAGE[id], v = engageState[id];
   const head = (kicker) => `<span class="poll-label">${escapeStoryText(kicker)}</span><p class="poll-q" id="poll-q-${id}">${escapeStoryText(e.q)}</p>`;
-  const cardBtn = `<div class="result-card" data-card-for="${id}"></div><button class="poll-share" type="button" data-share-card>Share your result</button>`;
-  if (e.type === 'slider') {   // no button: the number is final when you let go, and you can drag again to change it
+  const shareBtn = `<button class="poll-share" type="button" data-share-card>Share your result</button>`;   // opens the result card as a popup
+  if (e.type === 'slider') {   // no save button: the number is final when you let go, and you can drag again to change it
     const done = v !== undefined;
     return `${head(e.kicker)}<div class="slider-wrap"><input class="slider" type="range" min="0" max="100" value="${done ? v : 50}" aria-label="${escapeStoryText(e.q)}: ${e.lo} to ${e.hi}"><i class="slider-avg" style="left:${e.avg}%"${done ? '' : ' hidden'} title="Average reader"></i></div>
       <div class="slider-ends"><span>${e.lo}</span><span>${e.hi}</span></div>
-      <p class="slider-you">You: <b>${done ? v : 50}</b><span class="slider-avgtext"${done ? '' : ' hidden'}> · Average reader: <b>${e.avg}</b></span></p>
-      <div class="slider-result"${done ? '' : ' hidden'}>${cardBtn}</div>`;
+      <div class="engage-foot"><p class="slider-you">You: <b>${done ? v : 50}</b><span class="slider-avgtext"${done ? '' : ' hidden'}> · Average reader: <b>${e.avg}</b></span></p>${shareBtn.replace('<button ', `<button${done ? '' : ' hidden'} `)}</div>`;
   }
   if (e.type === 'predict') {
     if (v === undefined) {
@@ -769,8 +768,8 @@ function renderEngageInner(id) {
         <p class="poll-note">Resolves automatically once it happens, then scored on your profile as a % accuracy, like a credibility rating. No money involved.</p>`;
     }
     const open = Object.keys(engageState).filter((k) => ENGAGE[k] && ENGAGE[k].type === 'predict').length;
-    return `${head('Open prediction')}<div class="predict-called"><b>Your call:</b> ${e.labels[v === 'a' ? 0 : 1]}<span>Resolves by ${e.by}</span></div>
-      <p class="poll-note">You have ${open} open ${open === 1 ? 'prediction' : 'predictions'}. Your accuracy score starts once the first one resolves.</p>${cardBtn}<p class="poll-note"><button class="poll-change" type="button" data-poll-change>Change my call</button></p>`;
+    return `${head('Open prediction')}<div class="predict-called"><div><b>Your call:</b> ${e.labels[v === 'a' ? 0 : 1]}<span>Resolves by ${e.by}</span></div>${shareBtn}</div>
+      <p class="poll-note">You have ${open} open ${open === 1 ? 'prediction' : 'predictions'}. Your accuracy score starts once the first one resolves.</p>`;
   }
   if (v === undefined) {   // poll
     return `${head('Your take')}<div class="poll-choices" role="group" aria-labelledby="poll-q-${id}">
@@ -778,7 +777,7 @@ function renderEngageInner(id) {
   }
   const split = crowdFor(id, v);
   const rows = ['a', 'b'].map((k, i) => `<div class="poll-row${v === k ? ' is-mine' : ''}"><span class="poll-fill" style="width:${split[i]}%"></span><span class="poll-name">${e.labels[i]}${v === k ? ' <i aria-hidden="true">✓</i>' : ''}</span><b>${split[i]}%</b></div>`).join('');
-  return `${head('Your take')}<div class="poll-results" role="status">${rows}</div>${cardBtn}<p class="poll-note">You voted ${e.labels[v === 'a' ? 0 : 1]}. <button class="poll-change" type="button" data-poll-change>Change</button></p>`;
+  return `${head('Your take')}<div class="poll-results" role="status">${rows}</div><div class="engage-foot"><p class="poll-note">You voted ${e.labels[v === 'a' ? 0 : 1]}.</p>${shareBtn}</div>`;
 }
 const renderEngage = (story) => (story.id && ENGAGE[story.id]) ? `<div class="story-poll" data-poll="${story.id}" data-kind="${ENGAGE[story.id].type}">${renderEngageInner(story.id)}</div>` : '';
 function renderReacts(story) {
@@ -815,13 +814,41 @@ async function buildResultCard(id) {
   ctx.fillStyle = '#625a51'; ctx.font = '400 32px "DM Sans", Arial, sans-serif'; ctx.fillText('What’s your take?  Today’s issue on Bought.', 90, 1250);
   return new Promise((res) => cv.toBlob(res, 'image/png'));
 }
-async function showResultCard(box) {
-  const id = box.dataset.poll, slot = box.querySelector('.result-card');
-  if (!slot || engageState[id] === undefined) return;
+// The card only appears when the Share button is pressed: a popup with the picture, a Share button (phones) and Save image.
+let cardPopup = null, cardTrigger = null;
+function closeCardPopup() {
+  if (!cardPopup || cardPopup.hidden) return;
+  cardPopup.hidden = true;
+  URL.revokeObjectURL(cardPopup.querySelector('img').src);
+  document.body.style.overflow = '';
+  cardTrigger?.focus();
+}
+async function openCardPopup(id, trigger) {
+  cardTrigger = trigger;
+  if (!cardPopup) {
+    cardPopup = document.createElement('div');
+    cardPopup.className = 'card-popup'; cardPopup.hidden = true;
+    cardPopup.setAttribute('role', 'dialog'); cardPopup.setAttribute('aria-modal', 'true'); cardPopup.setAttribute('aria-label', 'Your result card');
+    cardPopup.innerHTML = `<div class="card-popup-box"><button class="card-popup-close" type="button" aria-label="Close">×</button><img class="card-popup-img" alt="Your result card, ready to share"><div class="card-popup-actions"><button class="card-popup-share" type="button">Share</button><button class="card-popup-save" type="button">Save image</button></div></div>`;
+    document.body.append(cardPopup);
+    cardPopup.addEventListener('click', (event) => { if (event.target === cardPopup || event.target.closest('.card-popup-close')) closeCardPopup(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeCardPopup(); });
+    cardPopup.querySelector('.card-popup-save').addEventListener('click', () => {
+      const a = document.createElement('a'); a.href = cardPopup.querySelector('img').src; a.download = 'bought-my-take.png'; a.click(); showActionFeedback('Card saved');
+    });
+    cardPopup.querySelector('.card-popup-share').addEventListener('click', async () => {
+      const file = new File([cardPopup._blob], 'bought-my-take.png', { type: 'image/png' }), id2 = cardPopup.dataset.id;
+      try { await navigator.share({ files: [file], title: 'My take on Bought.', url: id2.startsWith('glance-') ? location.origin + location.pathname : sharePageUrl(id2) }); }
+      catch (error) { if (error.name !== 'AbortError') showActionFeedback('Could not share the card'); }
+    });
+  }
   const blob = await buildResultCard(id);
-  const old = slot.querySelector('img'); if (old) URL.revokeObjectURL(old.src);
-  slot.innerHTML = ''; const img = new Image(); img.src = URL.createObjectURL(blob); img.alt = 'Your result card, ready to share'; slot.append(img);
-  slot._blob = blob;
+  cardPopup._blob = blob; cardPopup.dataset.id = id;
+  cardPopup.querySelector('img').src = URL.createObjectURL(blob);
+  cardPopup.querySelector('.card-popup-share').hidden = !canShareFiles;
+  cardPopup.hidden = false;
+  document.body.style.overflow = 'hidden';
+  cardPopup.querySelector('.card-popup-close').focus();
 }
 
 function renderStory(story, number, saveKey = number) {
@@ -1326,12 +1353,7 @@ storiesRoot.addEventListener('click', (event) => {   // Pulse card buttons
   else shareLink({ title: `${title} — Bought. Pulse`, text, url: sharePageUrl(`pulse-${card.dataset.clip}`) });
 });
 
-function refreshEngage(box) {
-  const id = box.dataset.poll;
-  box.innerHTML = renderEngageInner(id);
-  showResultCard(box);
-}
-storiesRoot.querySelectorAll('.story-poll').forEach((box) => { if (engageState[box.dataset.poll] !== undefined) showResultCard(box); });
+function refreshEngage(box) { box.innerHTML = renderEngageInner(box.dataset.poll); }
 storiesRoot.addEventListener('input', (event) => {   // slider: show your number as you drag
   const slider = event.target.closest('.slider');
   if (slider) slider.closest('.story-poll').querySelector('.slider-you b').textContent = slider.value;
@@ -1344,8 +1366,7 @@ storiesRoot.addEventListener('change', (event) => {   // slider: when you let go
   saveJson(stateKey, engageState);
   box.querySelector('.slider-avg').hidden = false;
   box.querySelector('.slider-avgtext').hidden = false;
-  box.querySelector('.slider-result').hidden = false;
-  showResultCard(box);   // the share card follows your latest number
+  box.querySelector('.poll-share').hidden = false;   // the share button (and its card) follow your latest number
 });
 storiesRoot.addEventListener('click', async (event) => {   // answers, predictions, sliders, reactions and result cards
   const react = event.target.closest('[data-react]');
@@ -1357,25 +1378,14 @@ storiesRoot.addEventListener('click', async (event) => {   // answers, predictio
     storiesRoot.querySelector(`[data-react-for="${id}"] [data-react="${k}"]`)?.focus();
     return;
   }
-  const vote = event.target.closest('[data-poll-vote]'), change = event.target.closest('[data-poll-change]'), card = event.target.closest('[data-share-card]');
-  if (!vote && !change && !card) return;
+  const vote = event.target.closest('[data-poll-vote]'), card = event.target.closest('[data-share-card]');
+  if (!vote && !card) return;
   const box = event.target.closest('.story-poll'), id = box.dataset.poll;
-  if (card) {
-    const slot = box.querySelector('.result-card');
-    if (!slot._blob) await showResultCard(box);
-    const file = new File([slot._blob], 'bought-my-take.png', { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'My take on Bought.', url: id.startsWith('glance-') ? location.origin + location.pathname : sharePageUrl(id) }); } catch (error) { if (error.name !== 'AbortError') showActionFeedback('Could not share the card'); }
-    } else {   // desktop: save the picture
-      const a = document.createElement('a'); a.href = URL.createObjectURL(slot._blob); a.download = 'bought-my-take.png'; a.click(); showActionFeedback('Card saved');
-    }
-    return;
-  }
-  if (vote) engageState[id] = vote.dataset.pollVote;
-  else delete engageState[id];
+  if (card) { openCardPopup(id, card); return; }
+  engageState[id] = vote.dataset.pollVote;   // an answer or a prediction is final once given: no "change" button
   saveJson(stateKey, engageState);
   refreshEngage(box);
-  box.querySelector(change ? (box.dataset.kind === 'slider' ? '.slider' : '.poll-choice') : '.poll-change')?.focus?.();
+  box.querySelector('.poll-share')?.focus?.();
 });
 
 

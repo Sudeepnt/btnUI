@@ -1056,19 +1056,21 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 
 /* Readers right now: a pill in the top bar, just before the dark-mode button. Paper colour, newspaper font for the number. */
 .masthead { grid-template-columns: max-content minmax(0, 1fr) max-content max-content max-content; }
-.readers { display: inline-flex; align-items: baseline; gap: 4px; margin-right: 2px; padding: 4px 8px 3px; border: 1px solid var(--rule); border-radius: 999px; background: transparent; color: var(--ink); white-space: nowrap; font: 500 .75rem/1 'DM Sans', Arial, sans-serif; }
+.readers { display: inline-flex; align-items: center; gap: 6px; margin-right: 2px; padding: 4px 8px 3px; border: 1px solid var(--rule); border-radius: 999px; background: transparent; color: var(--ink); white-space: nowrap; font: 500 .75rem/1 'DM Sans', Arial, sans-serif; }
+.readers-dot { width: 7px; height: 7px; border-radius: 50%; background: #e8423f; animation: readers-pulse 2s ease-in-out infinite; }
+@keyframes readers-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .readers-dot { animation: none; } }
 .readers-num { font: 700 .9375rem/1 Newsreader, Georgia, serif; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -.01em; }
-.readers-long { display: none; color: var(--quiet-ink); }
 @media (min-width: 600px) { .readers { margin-right: 6px; padding: 6px 14px 5px; font-size: .8125rem; } .readers-num { font-size: 1.1875rem; } }
-@media (min-width: 900px) { .readers-long { display: inline; } }   /* the words only where the bar is wide; the page is still a phone-width column below this */
-@media (max-width: 419px) {   /* every pixel goes to the date on a phone: no flanking rules, slightly smaller type, a tighter pill */
+@media (max-width: 899px) {   /* the page is a phone-width column here: every pixel goes to the date: no flanking rules, slightly smaller type, a tighter pill */
   .issue-date::before, .issue-date::after { display: none; }
-  .masthead .wordmark { font-size: 24px; }
+  .masthead .wordmark { font-size: 23px; }
   .masthead .weekday { font-size: 12px; }
   .masthead .date-copy time { font-size: 11px; }
   .masthead .date-copy { margin: 0 3px; }
-  .readers { padding: 3px 7px 2px; }
-  .readers-num { font-size: .875rem; }
+  .readers { gap: 4px; padding: 3px 7px 2px 6px; }
+  .readers-dot { width: 6px; height: 6px; }
+  .readers-num { font-size: .8125rem; }
   .masthead .theme-toggle { margin-left: 3px; }
 }
 @media (max-width: 379px) { .masthead .language-name { display: none; } }   /* the globe and arrow stay; the button just loses its word */
@@ -1099,3 +1101,27 @@ html[data-theme="dark"] .reason-badge.is-place { color: #7fdca6; background: rgb
 .glance-engage:empty { display: none; }
 .glance-engage .story-poll { margin-top: 4px; }
 .glance-engage .story-reacts { margin-top: 12px; }
+
+/* Newspaper / Podcast: two sections of one page. The Podcast stays hidden (and its files unrequested) until it is opened. */
+.podcast-view[hidden] { display: none; }
+.page[data-view="podcast"] > .story-list, .page[data-view="podcast"] > .issue-end, .page[data-view="podcast"] > .issue-completion { display: none; }
+.view-option[aria-busy="true"] { opacity: .7; cursor: progress; }
+
+/* Share button inside the answer; the result card opens as a popup */
+.engage-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 10px; }
+.engage-foot .poll-note, .engage-foot .slider-you { margin: 0; }
+.engage-foot .poll-share { margin: 0; min-height: 36px; padding: 0 14px; font-size: .8125rem; }
+.poll-share[hidden] { display: none; }
+.predict-called { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; }
+.predict-called > div { display: grid; gap: 2px; min-width: 0; }
+.predict-called .poll-share { margin: 0; min-height: 36px; padding: 0 14px; font-size: .8125rem; }
+.card-popup { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 60%); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); animation: like-fade .2s ease-out; }
+.card-popup[hidden] { display: none; }
+.card-popup-box { position: relative; display: grid; gap: 14px; width: min(92vw, 360px); max-height: 100%; animation: like-rise .25s ease-out; }
+.card-popup-img { display: block; width: 100%; aspect-ratio: 4 / 5; height: auto; border-radius: 16px; box-shadow: 0 16px 50px rgb(0 0 0 / 45%); background: #d8d3c8; }
+.card-popup-close { position: absolute; top: -12px; right: -12px; z-index: 1; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #fff; color: #16150f; font: 400 1.5rem/1 Arial, sans-serif; cursor: pointer; box-shadow: 0 4px 14px rgb(0 0 0 / 35%); }
+.card-popup-actions { display: flex; gap: 10px; }
+.card-popup-actions button { flex: 1; min-height: 44px; border: 1.5px solid #fff; border-radius: 999px; background: transparent; color: #fff; font: 700 .9375rem/1 'DM Sans', Arial, sans-serif; cursor: pointer; }
+.card-popup-actions .card-popup-share { background: #fff; color: #16150f; }
+.card-popup-actions button[hidden] { display: none; }
+.card-popup button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }

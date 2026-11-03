@@ -19,7 +19,7 @@
   <meta name="twitter:title" content="Bought. — Today's issue">
   <meta name="twitter:description" content="Today's issue: the news, as short videos you can watch.">
   <meta name="twitter:image" content="https://btnui.vercel.app/share/site.jpg">
-  <link rel="stylesheet" href="styles.css?v=82">
+  <link rel="stylesheet" href="styles.css?v=86">
   <script>try{var t=localStorage.getItem('bought-theme');if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 </head>
 <body>
@@ -35,7 +35,7 @@
         </div>
       </div>
 
-      <span class="readers" id="readers-now" title="Reading Bought right now"><b class="readers-num">1,292</b><span class="readers-long"> reading Bought right now</span></span>
+      <span class="readers" id="readers-now" title="Reading Bought right now"><i class="readers-dot" aria-hidden="true"></i><b class="readers-num">1,292</b></span>
 
       <div class="language-picker">
         <button class="language-trigger" type="button" aria-label="Change language, English" aria-haspopup="dialog" aria-controls="language-menu" aria-expanded="false">
@@ -60,7 +60,7 @@
     </div>
 
     <div class="view-switch" role="group" aria-label="Issue format">
-      <button class="view-option is-active" type="button" aria-pressed="true">
+      <button class="view-option is-active" type="button" data-view="newspaper" aria-pressed="true">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <rect x="3" y="3" width="18" height="18" rx="1.5" />
           <rect x="6.5" y="7" width="4.5" height="5" />
@@ -68,12 +68,63 @@
         </svg>
         <span data-i18n="nav.newspaper">Newspaper</span>
       </button>
-      <a class="view-option" href="podcast.html" aria-label="Open podcast edition">
+      <button class="view-option" type="button" data-view="podcast" aria-pressed="false" aria-controls="podcast-view">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path d="M3 10v4M7 7v10M11 3v18M15 8v8M19 5v14M23 10v4" />
         </svg>
         <span data-i18n="nav.podcast">Podcast</span>
-      </a>
+      </button>
+    </div>
+
+    <!-- The Podcast is another section of this same page, not another page. Its styles, script and audio are only requested the first time it is opened (views.js). -->
+    <div class="podcast-view" id="podcast-view" hidden>
+    <section class="brief" aria-labelledby="brief-title">
+      <div class="brief-cover">
+        <p class="brief-eyebrow" data-i18n="pod.eyebrow">The daily brief</p>
+        <h1 id="brief-title" data-i18n="pod.title">Today’s Bought Brief</h1>
+        <p class="brief-subtitle">50 headlines in 7 min</p>
+        <p class="brief-intro">A quick audio briefing of today’s most important technology, business, and AI stories.</p>
+      </div>
+
+      <div class="brief-player" role="group" aria-label="Daily brief player">
+        <div class="player-controls">
+          <button class="skip-button" type="button" data-skip="-15" aria-label="Go back 15 seconds">
+            <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M12 14a13 13 0 1 1-4 9"/><path d="m13 8-4 6 7 1"/><text x="20" y="26">15</text></svg>
+          </button>
+          <span class="waveform waveform-left" aria-hidden="true"></span>
+          <button class="play-main" id="play-main" type="button" aria-label="Play daily brief">
+            <svg class="play-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>
+            <svg class="pause-symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </button>
+          <span class="waveform waveform-right" aria-hidden="true"></span>
+          <button class="skip-button" type="button" data-skip="15" aria-label="Skip ahead 15 seconds">
+            <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M28 14a13 13 0 1 0 4 9"/><path d="m27 8 4 6-7 1"/><text x="20" y="26">15</text></svg>
+          </button>
+          <button class="speed-button" id="speed-button" type="button" aria-label="Playback speed, 1 times">1×</button>
+        </div>
+
+        <input class="player-progress" id="player-progress" type="range" min="0" max="428" value="42" aria-label="Playback position">
+        <div class="player-times"><time id="elapsed-time">0:42</time><time>7:08</time></div>
+
+        <div class="brief-facts" aria-label="Brief details">
+          <div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h8M8 11h8M8 15h8M8 18h5"/></svg>
+            <span><strong>50</strong><small>Stories</small></span>
+          </div>
+          <div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span><strong>7 min</strong><small>Listen time</small></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lineup" aria-labelledby="lineup-title">
+      <div class="lineup-rule" aria-hidden="true"></div>
+      <div class="lineup-kicker"><span data-i18n="pod.inbrief">In this brief</span><span>50 headlines</span></div>
+      <h2 id="lineup-title" data-i18n="pod.lineup">Today’s lineup.</h2>
+      <ol class="headline-list" id="headline-list" tabindex="0" aria-label="Scroll through all 50 headlines"></ol>
+    </section>
     </div>
 
     <div class="story-list" id="edition-stories"></div>
@@ -128,19 +179,22 @@
 
   <div class="action-feedback" id="action-feedback" role="status" aria-live="polite" hidden></div>
 
-  <script src="nav.js?v=1"></script>
+  <script src="views.js?v=1"></script>
   <script src="leave-confirm.js?v=1"></script>
   <script src="theme.js?v=1"></script>
   <script src="language.js?v=8"></script>
   <script>
-    // Use the pipeline feed when it exists (prime stories with presenter video); otherwise the built-in samples.
-    (async () => {
+    // Use the pipeline feed when it exists (prime stories and the podcast episode); otherwise the built-in samples.
+    window.liveFeedReady = (async () => {
       try {
         const res = await fetch('live/feed.json', { cache: 'no-cache' });
         if (res.ok) window.liveFeed = await res.json();
       } catch (e) { /* no feed: keep the sample stories */ }
+    })();
+    (async () => {
+      await window.liveFeedReady;
       for (const src of ['stories.js', 'completion.js', 'issue-end.js']) {
-        await window.boughtLoadScript(src + '?v=62');
+        await window.boughtLoadScript(src + '?v=64');
       }
     })();
   </script>
