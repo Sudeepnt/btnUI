@@ -1051,8 +1051,8 @@ html[data-theme="dark"] .react-btn.is-on { border-color: #e0766b; background: co
 .readers-dot { width: 7px; height: 7px; border-radius: 50%; background: #e8423f; animation: readers-pulse 2s ease-in-out infinite; }
 @keyframes readers-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .readers-dot { animation: none; } }
-.readers-num { font: 700 .9375rem/1 Newsreader, Georgia, serif; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -.01em; }
-@media (min-width: 600px) { .readers { margin-right: 6px; padding: 6px 14px 5px; font-size: .8125rem; } .readers-num { font-size: 1.1875rem; } }
+.readers-num { font: 700 .797rem/1 Newsreader, Georgia, serif; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -.01em; }
+@media (min-width: 600px) { .readers { margin-right: 6px; padding: 6px 14px 5px; font-size: .8125rem; } .readers-num { font-size: 1.009rem; } }
 @media (max-width: 899px) {   /* the page is a phone-width column here: every pixel goes to the date: no flanking rules, slightly smaller type, a tighter pill */
   .issue-date::before, .issue-date::after { display: none; }
   .masthead .wordmark { font-size: 23px; }
@@ -1061,7 +1061,7 @@ html[data-theme="dark"] .react-btn.is-on { border-color: #e0766b; background: co
   .masthead .date-copy { margin: 0 3px; }
   .readers { gap: 4px; padding: 3px 7px 2px 6px; }
   .readers-dot { width: 6px; height: 6px; }
-  .readers-num { font-size: .8125rem; }
+  .readers-num { font-size: .691rem; }
   .masthead .theme-toggle { margin-left: 3px; }
 }
 @media (max-width: 379px) { .masthead .language-name { display: none; } }   /* the globe and arrow stay; the button just loses its word */
@@ -1122,11 +1122,6 @@ html[data-theme="dark"] .reason-badge.is-place { color: #7fdca6; background: rgb
 .story-poll .engage-foot .poll-note, .story-poll .engage-foot .slider-you { margin: 0; }
 .slider { height: 36px; }   /* a bigger touch area for the drag handle */
 
-/* Share button: the paper's own red, filled */
-.story-poll .poll-share { border-color: #9f3029; background: #9f3029; color: #fff; }
-.story-poll .poll-share:hover { border-color: #7f241e; background: #7f241e; color: #fff; }
-html[data-theme="dark"] .story-poll .poll-share { border-color: #e0766b; background: #e0766b; color: #16150f; }
-html[data-theme="dark"] .story-poll .poll-share:hover { border-color: #f0958b; background: #f0958b; color: #16150f; }
 /* Reactions: each one has its own colour when chosen */
 .react-btn[data-react="impressive"].is-on { border-color: #b98a00; background: color-mix(in srgb, #f2bd1d 28%, transparent); }
 .react-btn[data-react="concerning"].is-on { border-color: #9f3029; background: color-mix(in srgb, #9f3029 13%, transparent); }
@@ -1136,3 +1131,13 @@ html[data-theme="dark"] .react-btn[data-react="impressive"].is-on { border-color
 html[data-theme="dark"] .react-btn[data-react="concerning"].is-on { border-color: #e0766b; background: color-mix(in srgb, #e0766b 18%, transparent); }
 html[data-theme="dark"] .react-btn[data-react="overhyped"].is-on { border-color: #5fc98a; background: color-mix(in srgb, #5fc98a 18%, transparent); }
 html[data-theme="dark"] .react-btn[data-react="unknown"].is-on { border-color: #7aaaf0; background: color-mix(in srgb, #7aaaf0 18%, transparent); }
+
+/* Share your result: a soft yellow, see-through, so it reads as the thing to press */
+.story-poll .poll-share { border: 1.5px solid #c99a0a; background: rgb(242 189 29 / 30%); color: var(--ink); }
+.story-poll .poll-share:hover { background: rgb(242 189 29 / 48%); border-color: #b98a00; color: var(--ink); }
+html[data-theme="dark"] .story-poll .poll-share { border-color: #f2c94c; background: rgb(242 189 29 / 22%); color: #f6e7b0; }
+html[data-theme="dark"] .story-poll .poll-share:hover { background: rgb(242 189 29 / 36%); color: #fff; }
+/* once a reaction is chosen it stays as it is and the others step back (20% less opaque) */
+.story-reacts.has-choice .react-btn:not(.is-on) { opacity: .8; }
+/* the answer in "You voted ..." is a little bolder than the rest of the line */
+.story-poll .poll-note b { color: var(--ink); font-weight: 700; }

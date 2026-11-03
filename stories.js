@@ -759,13 +759,13 @@ function renderEngageInner(id) {
   }
   const split = crowdFor(id, v);
   const rows = ['a', 'b'].map((k, i) => `<div class="poll-row${v === k ? ' is-mine' : ''}"><span class="poll-fill" style="width:${split[i]}%"></span><span class="poll-name">${e.labels[i]}${v === k ? ' <i aria-hidden="true">✓</i>' : ''}</span><b>${split[i]}%</b></div>`).join('');
-  return `${head('Your take')}<div class="poll-results" role="status">${rows}</div><div class="engage-foot"><p class="poll-note">You voted ${e.labels[v === 'a' ? 0 : 1]}.</p>${shareBtn}</div>`;
+  return `${head('Your take')}<div class="poll-results" role="status">${rows}</div><div class="engage-foot"><p class="poll-note">You voted <b>${e.labels[v === 'a' ? 0 : 1]}</b>.</p>${shareBtn}</div>`;
 }
 const renderEngage = (story) => (story.id && ENGAGE[story.id]) ? `<div class="story-poll" data-poll="${story.id}" data-kind="${ENGAGE[story.id].type}">${renderEngageInner(story.id)}</div>` : '';
 function renderReacts(story) {
   if (!story.id || ENGAGE[story.id]) return '';   // one strategy per story: Reactions only where there is no question
   const counts = reactCounts(story.id), mine = (reactState[story.id] || []).slice(0, 1);
-  return `<div class="story-reacts" data-react-for="${story.id}" role="group" aria-label="React to this story"><span class="poll-label">React</span><div class="react-row">${REACTIONS.map(([k, emoji, name]) => {
+  return `<div class="story-reacts${mine.length ? ' has-choice' : ''}" data-react-for="${story.id}" role="group" aria-label="React to this story"><span class="poll-label">React</span><div class="react-row">${REACTIONS.map(([k, emoji, name]) => {
     const on = mine.includes(k);
     return `<button class="react-btn${on ? ' is-on' : ''}" type="button" data-react="${k}" aria-pressed="${on}"><span class="react-emoji" aria-hidden="true">${emoji}</span>${name} <b>${counts[k] + (on ? 1 : 0)}</b></button>`;
   }).join('')}</div></div>`;
