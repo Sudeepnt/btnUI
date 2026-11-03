@@ -19,7 +19,7 @@
   <meta name="twitter:title" content="Bought. — Today's issue">
   <meta name="twitter:description" content="Today's issue: the news, as short videos you can watch.">
   <meta name="twitter:image" content="https://btnui.vercel.app/share/site.jpg">
-  <link rel="stylesheet" href="styles.css?v=78">
+  <link rel="stylesheet" href="styles.css?v=82">
   <script>try{var t=localStorage.getItem('bought-theme');if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 </head>
 <body>
@@ -32,9 +32,10 @@
         <div class="date-copy">
           <span class="weekday">Tuesday</span>
           <time datetime="2026-10-13">October 13, 2026</time>
-          <span class="readers" id="readers-now"><i class="readers-dot" aria-hidden="true"></i><b class="readers-num">1,292</b><span class="readers-long"> reading Bought right now</span><span class="readers-short"> reading now</span></span>
         </div>
       </div>
+
+      <span class="readers" id="readers-now" title="Reading Bought right now"><b class="readers-num">1,292</b><span class="readers-long"> reading Bought right now</span></span>
 
       <div class="language-picker">
         <button class="language-trigger" type="button" aria-label="Change language, English" aria-haspopup="dialog" aria-controls="language-menu" aria-expanded="false">
@@ -139,7 +140,7 @@
         if (res.ok) window.liveFeed = await res.json();
       } catch (e) { /* no feed: keep the sample stories */ }
       for (const src of ['stories.js', 'completion.js', 'issue-end.js']) {
-        await window.boughtLoadScript(src + '?v=61');
+        await window.boughtLoadScript(src + '?v=62');
       }
     })();
   </script>

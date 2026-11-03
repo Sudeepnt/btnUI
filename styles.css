@@ -1054,23 +1054,25 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 .slider-avg { position: absolute; top: 50%; width: 3px; height: 18px; margin: -9px 0 0 -1.5px; border-radius: 2px; background: var(--ink); pointer-events: none; }
 .slider-avg[hidden], .slider-avgtext[hidden], .slider-result[hidden] { display: none; }
 
-/* Readers right now: a pill in the top bar. Under the date on a phone, beside it from 900px. */
-.readers { display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; padding: 2px 9px 2px 7px; border-radius: 999px; background: #fbf9f5; border: 1px solid var(--rule); color: #16150f; white-space: nowrap; font: 500 .6875rem/1.2 'DM Sans', Arial, sans-serif; }
-html[data-theme="dark"] .readers { background: #efece5; border-color: transparent; }
-.readers-dot { width: 7px; height: 7px; border-radius: 50%; background: #e8423f; animation: readers-pulse 2s ease-in-out infinite; }
-.readers-num { font: 700 .75rem/1.2 ui-monospace, 'SF Mono', Menlo, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.readers-long { display: none; }
-@keyframes readers-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
-@media (min-width: 900px) {
-  .date-copy { display: grid; grid-template-columns: auto auto; grid-template-areas: 'day readers' 'date readers'; align-items: center; column-gap: 18px; }   /* weekday over date, as before; the pill beside them */
-  .date-copy .weekday { grid-area: day; text-align: center; }
-  .date-copy time { grid-area: date; display: block; text-align: center; }
-  .readers { grid-area: readers; margin-top: 0; padding: 4px 14px 4px 10px; font-size: .8125rem; }
-  .readers-num { font-size: 1.0625rem; }
-  .readers-short { display: none; }
-  .readers-long { display: inline; }
+/* Readers right now: a pill in the top bar, just before the dark-mode button. Paper colour, newspaper font for the number. */
+.masthead { grid-template-columns: max-content minmax(0, 1fr) max-content max-content max-content; }
+.readers { display: inline-flex; align-items: baseline; gap: 4px; margin-right: 2px; padding: 4px 8px 3px; border: 1px solid var(--rule); border-radius: 999px; background: transparent; color: var(--ink); white-space: nowrap; font: 500 .75rem/1 'DM Sans', Arial, sans-serif; }
+.readers-num { font: 700 .9375rem/1 Newsreader, Georgia, serif; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -.01em; }
+.readers-long { display: none; color: var(--quiet-ink); }
+@media (min-width: 600px) { .readers { margin-right: 6px; padding: 6px 14px 5px; font-size: .8125rem; } .readers-num { font-size: 1.1875rem; } }
+@media (min-width: 900px) { .readers-long { display: inline; } }   /* the words only where the bar is wide; the page is still a phone-width column below this */
+@media (max-width: 419px) {   /* every pixel goes to the date on a phone: no flanking rules, slightly smaller type, a tighter pill */
+  .issue-date::before, .issue-date::after { display: none; }
+  .masthead .wordmark { font-size: 24px; }
+  .masthead .weekday { font-size: 12px; }
+  .masthead .date-copy time { font-size: 11px; }
+  .masthead .date-copy { margin: 0 3px; }
+  .readers { padding: 3px 7px 2px; }
+  .readers-num { font-size: .875rem; }
+  .masthead .theme-toggle { margin-left: 3px; }
 }
-@media (prefers-reduced-motion: reduce) { .readers-dot { animation: none; } }
+@media (max-width: 379px) { .masthead .language-name { display: none; } }   /* the globe and arrow stay; the button just loses its word */
+@media (max-width: 359px) { .readers { display: none; } }
 
 /* Personalisation reasons: "Because you read AI", "Near you · Bengaluru" */
 .story-reason { margin: 10px 0 0; }
