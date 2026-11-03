@@ -470,7 +470,7 @@ function renderPulse() {
       </li>` : `
       <li class="pulse-item">
         <div class="pulse-card ${categoryClass(clip.category)}" role="group" aria-label="Clip: ${escapeStoryText(clip.title)}">
-          <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=3" poster="pulse/${clip.clip}.pulse.jpg?v=3" loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
+          <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=7" poster="pulse/${clip.clip}.pulse.jpg?v=7" loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
           <button class="pulse-hit" type="button" data-pulse-clip aria-label="Play or mute clip: ${escapeStoryText(clip.title)}"></button>
           <span class="pulse-play" aria-hidden="true">${playIcon}</span>
           <div class="swipe-copy pulse-copy">
@@ -550,8 +550,8 @@ if (window.liveFeed && window.liveFeed.prime && window.liveFeed.prime.length) {
     image: item.image_url,
     imageAlt: '',
     imagePosition: 'center 42%',
-    video: item.video_url || '',
-    poster: item.poster_url || '',
+    video: `prime/${item.id}.mp4?v=2`,   // themed voice-over frame from pipeline/prime.py (no presenter)
+    poster: `prime/${item.id}.jpg?v=2`,
     badges: item.badges || [],
     id: item.id,
     audio: item.audio_url || '',
@@ -594,7 +594,7 @@ function renderStory(story, number, saveKey = number) {
     <article class="lead-story ${categoryClass(story.category)}" id="story-${number}" data-story-id="${escapeStoryText(story.id || '')}" aria-labelledby="story-title-${number}" data-story-number="${number}" data-save-key="${saveKey}">
       <div class="video-poster${story.video ? ' has-video' : ''}">
         ${story.video
-          ? `<video class="hero-image" src="${escapeStoryText(story.video)}" ${story.poster ? `poster="${escapeStoryText(story.poster)}" preload="none"` : 'preload="metadata"'} playsinline disablepictureinpicture disableremoteplayback aria-label="AI journalist presenting: ${escapeStoryText(story.title)}"></video>`
+          ? `<video class="hero-image" src="${escapeStoryText(story.video)}" ${story.poster ? `poster="${escapeStoryText(story.poster)}" preload="none"` : 'preload="metadata"'} playsinline disablepictureinpicture disableremoteplayback aria-label="Story video: ${escapeStoryText(story.title)}"></video>`
           : `<img class="hero-image" src="${story.image}" alt="${escapeStoryText(story.imageAlt)}" style="object-position: ${escapeStoryText(story.imagePosition)}" loading="${loading}">`}
         <span class="video-story-number" aria-label="Story ${number} of 50">${number} / 50</span>
         ${story.video ? `<button class="play-news" type="button" aria-label="Play the news: ${escapeStoryText(story.title)}">
@@ -603,12 +603,7 @@ function renderStory(story, number, saveKey = number) {
         </button>
         <button class="pin-close" type="button" aria-label="Close the player"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
         <span class="seek-flash" aria-hidden="true"></span>
-        <span class="video-progress" aria-hidden="true"><i></i></span>` : `<button class="play-news" type="button" aria-label="Play AI journalist news preview">
-          <span class="microphone-circle">${microphoneIcon}</span>
-        </button>
-        <div class="journalist-window">
-          <img src="assets/ai-presenter.jpg" alt="AI journalist presenting the story" loading="${loading}">
-        </div>`}
+        <span class="video-progress" aria-hidden="true"><i></i></span>` : ''}
       </div>
 
       <div class="story-copy">
@@ -625,7 +620,7 @@ function renderStory(story, number, saveKey = number) {
         </div>
         <h2 id="story-title-${number}"><button class="story-title-button" type="button" data-open-story="${number}" aria-label="Read full story: ${escapeStoryText(story.title)}">${escapeStoryText(story.title)}</button></h2>
         <p class="story-deck">${escapeStoryText(story.deck)}</p>
-        <div class="story-byline-row">${renderByline(story, true, readTimeLabel(number, story))}</div>
+        <div class="story-byline-row">${renderByline(story, false, readTimeLabel(number, story))}</div>
         ${story.link
           ? ''
           : `<div class="story-facts">

@@ -515,7 +515,7 @@ html.is-reading, html.is-reading body { overflow: hidden; }
 /* Like YouTube: fit the whole frame (never crop the headline bar); spare space becomes black bars */
 .video-poster.has-video .hero-image { object-fit: contain; object-position: center; background: #000; }
 .video-poster.has-video video:fullscreen, .video-poster.has-video video:-webkit-full-screen { object-fit: contain; width: 100%; height: 100%; background: #000; }
-.video-poster.has-video::after { display: none; }
+.video-poster.has-video::after, .video-poster.has-video .video-story-number { display: none; }   /* the themed frame carries its own n / 50 counter */
 
 /* ---- Desktop: a broad, multi-column front page (phones are untouched: everything here needs >= 900px) ---- */
 @media (min-width: 900px) {
@@ -938,8 +938,15 @@ html[data-theme="dark"] .completion-seal span { color: var(--quiet-ink); }
 .pulse-hit:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
 .pulse-copy { z-index: 2; right: 16px; bottom: 16px; left: 16px; pointer-events: none; }
 .pulse-copy .swipe-byline-row { margin-top: 10px; }
+.pulse-card.is-playing .pulse-copy .swipe-byline-row { margin-top: 12px; }
 .pulse-headline { margin: 7px 0 0; color: #fff; font: 700 clamp(1.5rem, 6.4vw, 1.9rem)/1.07 Newsreader, Georgia, serif; letter-spacing: -.025em; text-wrap: balance; }
-.pulse-card:has(.pulse-video) .pulse-play { top: 30%; z-index: 2; pointer-events: none; }
+/* play / resume button: frosted glass disc, shown whenever the clip is paused */
+.pulse-card:has(.pulse-video) .pulse-play { top: 34%; z-index: 2; pointer-events: none; width: 76px; height: 76px; margin: -38px 0 0 -38px; background: rgb(20 18 16 / 38%); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3); border: 1.5px solid rgb(255 255 255 / 70%); color: #fff; box-shadow: 0 6px 24px rgb(0 0 0 / 35%), inset 0 0 0 1px rgb(255 255 255 / 10%); animation: pulse-play-in .18s ease-out; }
+.pulse-card:has(.pulse-video) .pulse-play svg { width: 34px; height: 34px; margin-left: 4px; }
+.pulse-card:has(.pulse-video):hover .pulse-play { transform: scale(1.06); }
+@keyframes pulse-play-in { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
+/* while a clip plays: the facts step aside and the category + title sit at the bottom */
+.pulse-card.is-playing .swipe-facts { display: none; }
 .pulse-card.is-playing .pulse-play { display: none; }
 .pulse-length { display: block; margin-top: 8px; color: rgb(255 255 255 / 78%); font: .6875rem/1 ui-monospace, 'SF Mono', Menlo, monospace; }
 .pulse-card.is-ad { background: linear-gradient(180deg, #5b504a 0%, #2b2623 100%); cursor: default; }
