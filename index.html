@@ -19,7 +19,10 @@
   <meta name="twitter:title" content="Bought. — Today's issue">
   <meta name="twitter:description" content="Today's issue: the news, as short videos you can watch.">
   <meta name="twitter:image" content="https://btnui.vercel.app/share/site.jpg">
-  <link rel="stylesheet" href="styles.css?v=97">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
+  <link rel="stylesheet" href="styles.css?v=147">
   <script>try{var t=localStorage.getItem('bought-theme');if(t!=='light')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 </head>
 <body>
@@ -58,6 +61,7 @@
 
       <div class="newspaper-rules" aria-hidden="true"></div>
     </div>
+    <div class="issue-strip">Issue No. 297</div>
 
     <div class="view-switch" role="group" aria-label="Issue format">
       <button class="view-option is-active" type="button" data-view="newspaper" aria-pressed="true">
@@ -193,10 +197,28 @@
     })();
     (async () => {
       await window.liveFeedReady;
-      for (const src of ['stories.js', 'completion.js', 'issue-end.js']) {
-        await window.boughtLoadScript(src + '?v=68');
+      for (const src of ['discussion.js', 'stories.js', 'banner-ad.js', 'completion.js', 'issue-end.js']) {
+        await window.boughtLoadScript(src + '?v=100');
       }
     })();
   </script>
+<script>
+(function () {   // keep the date exactly centered in the top bar; the shorter side's line absorbs the difference
+  function centerDate() {
+    var d = document.querySelector('.issue-date'), m = document.querySelector('.masthead');
+    if (!d || !m) return;
+    d.style.removeProperty('--dl'); d.style.removeProperty('--dr');
+    var r = d.getBoundingClientRect(), mr = m.getBoundingClientRect(), t = d.querySelector('.date-copy').getBoundingClientRect().width;
+    var c = mr.left + mr.width / 2, cs = getComputedStyle(d), ml = parseFloat(cs.marginLeft) || 0;
+    d.style.setProperty('--dl', Math.max(0, c - r.left - t / 2) + 'px');
+    d.style.setProperty('--dr', Math.max(0, r.right - c - t / 2) + 'px');
+  }
+  window.centerDate = centerDate;
+  addEventListener('load', centerDate); addEventListener('resize', centerDate);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(centerDate);
+  var rd = document.getElementById('readers-now'); if (rd && window.MutationObserver) new MutationObserver(centerDate).observe(rd, { childList: true, subtree: true, characterData: true });
+  document.addEventListener('DOMContentLoaded', centerDate);
+})();
+</script>
 </body>
 </html>

@@ -381,7 +381,8 @@ const badgeIcons = {
 const renderBadges = (badges) => (badges && badges.length)
   ? `<span class="badges">${badges.map((badge) => `<span class="badge badge-${escapeStoryText(badge.id)}">${badgeIcons[badge.id] || ''}${escapeStoryText(badge.label)}</span>`).join('')}</span>`
   : '';
-const categoryClass = (category) => `cat-${String(category).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+const CAT_ALIAS = { founders: 'founders-startups', innovation: 'product-launches' };
+const categoryClass = (category) => { const slug = String(category).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return `cat-${CAT_ALIAS[slug] || slug}`; };
 
 const microphoneIcon = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect x="12" y="4" width="8" height="16" rx="4"/><path d="M8 15a8 8 0 0 0 16 0M16 23v5M11 28h10"/></svg>';
 
@@ -463,7 +464,7 @@ function renderPulse() {
   const cards = shown.map((clip) => `
       <li class="pulse-item">
         <div class="pulse-card ${categoryClass(clip.category)}" data-clip="${clip.clip}" role="group" aria-label="Clip: ${escapeStoryText(clip.title)}">
-          <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=8" poster="pulse/${clip.clip}.pulse.jpg?v=8" playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
+          <video class="pulse-video" src="pulse/${clip.clip}.pulse.mp4?v=10" poster="pulse/${clip.clip}.pulse.jpg?v=10" playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noremoteplayback" tabindex="-1" aria-hidden="true"></video>
           <button class="pulse-hit" type="button" data-pulse-clip aria-label="Play or pause clip: ${escapeStoryText(clip.title)}"></button>
           <span class="pulse-play" aria-hidden="true">${playIcon}</span>
           <div class="pulse-actions">
@@ -492,7 +493,7 @@ function renderPulse() {
   return `
     <section class="pulse-block" aria-labelledby="pulse-heading">
       <div class="section-break" aria-hidden="true"><span></span><span></span><span></span></div>
-      <header class="section-marker"><h2 id="pulse-heading">Pulse</h2>${storyCount(shown.length, 'clip', 'clips')}</header>
+      <header class="section-marker"><h2 id="pulse-heading">Pulse</h2>${storyCount(shown.length, 'clip', 'clips', 'swipe →')}</header>
       <ul class="pulse-rail" aria-label="Short video clips">${cards}</ul>
     </section>`;
 }
@@ -521,6 +522,7 @@ function safeWebsite(value) {
   } catch (e) { return ''; }
 }
 
+const CLASSIFIED_MARKET = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? `${location.protocol}//${location.hostname}:3000/` : '/';   // same address as the end-of-issue classifieds
 function renderClassifieds(key) {
   const items = classifiedSets[key].map(([tag, text, contact, website]) => {
     const href = safeWebsite(website);
@@ -528,12 +530,13 @@ function renderClassifieds(key) {
       ? `<a class="classified-link" href="${escapeStoryText(href)}" target="_blank" rel="noopener noreferrer sponsored">${escapeStoryText(text)}<span class="classified-out" aria-hidden="true"> ↗</span><span class="sr-only"> (opens the advertiser’s website)</span></a>`
       : escapeStoryText(text);
     return `
-      <li><span class="classified-tag">${escapeStoryText(tag)}</span><p>${body}</p><span class="classified-contact">${escapeStoryText(contact)}</span></li>`;
+      <li><span class="classified-tag">${escapeStoryText(tag)}</span><p>${body} <span class="classified-contact">${escapeStoryText(contact)}</span></p></li>`;
   }).join('');
   return `
     <section class="classifieds" aria-labelledby="classifieds-${key}">
       <header><h3 id="classifieds-${key}">Classifieds</h3></header>
       <ul>${items}</ul>
+      <a class="classified-place" href="${CLASSIFIED_MARKET}" data-leave-confirm>Place a line in an upcoming issue</a>
     </section>`;
 }
 
@@ -545,25 +548,65 @@ function renderSpotlightPlacement(number) {
     </figure>`;
 }
 
+// SAMPLE text: the live feed carries a headline and a summary only, so "Why it matters" falls back to one line per section until the
+// pipeline supplies a real one (item.why_it_matters). Replace these when the feed has it.
+const SAMPLE_WHY = {
+  'ai': 'The test for AI is shifting from clever demos to dependable, everyday work.',
+  'technology': 'The next gains may come from the whole system, not from one component.',
+  'tech business': 'Where the money moves first shows which bets the industry believes in.',
+  'founders': 'What founders do under pressure is an early signal for the companies that follow.',
+  'product launches': 'Launches show what people will be offered, and what they will be asked to pay for.',
+  'tech geopolitics': 'Rules and supply lines set what technology can be built, and where.',
+};
 const PRIME_COUNT = 20;   // how many Prime stories one issue carries
-// When the content pipeline's feed is available (see index.html loader), its prime stories replace the samples.
-if (window.liveFeed && window.liveFeed.prime && window.liveFeed.prime.length) {
-  sampleStories.splice(0, sampleStories.length, ...window.liveFeed.prime.slice(0, PRIME_COUNT).map((item) => ({
-    category: item.category,
-    title: item.headline,
-    deck: item.summary,
-    image: item.image_url,
-    imageAlt: '',
-    imagePosition: 'center 42%',
-    video: `prime/${item.id}.mp4?v=2`,   // themed voice-over frame from pipeline/prime.py (no presenter)
-    poster: `prime/${item.id}.jpg?v=2`,
-    badges: item.badges || [],
-    id: item.id,
-    audio: item.audio_url || '',
-    source: item.source,
-    link: item.link,
-  })));
+// ---- The issue is six sections of 50 stories: Technology, AI, Tech business and Founders & startups carry 10 each, Product launches and Tech
+// geopolitics 5 each. A story goes to the section named by its topic (live feed: Prime, cards and glance lists together; stories with a video
+// are picked first). When a topic has fewer stories than its section, the rest come from the hand-written sample stories above and the
+// SAMPLE_GEO ones below (the feed has no Tech geopolitics yet). Inside a section the cards mix video, photo and text.
+const SECTIONS = [['Technology', 10], ['AI', 10], ['Tech business', 10], ['Founders & startups', 10], ['Product launches', 5], ['Tech geopolitics', 5]];   // the order of the issue and how many stories each section carries (50 in all)
+const CANON = { business: 'Tech business', innovation: 'Product launches', founders: 'Founders & startups' };
+const canon = (c) => CANON[String(c).toLowerCase()] || c;
+// SAMPLE text for the topic the feed does not cover yet.
+const SAMPLE_GEO = [
+  { title: 'Export rules for AI chips tighten again', deck: 'New limits widen the list of processors that need a licence to leave the country.', matters: 'Supply rules now decide which labs can train the largest models, and where.' },
+  { title: 'A chip plant in a new region changes the supply map', deck: 'The planned fab would give buyers a second source outside the usual two or three hubs.', matters: 'Spreading manufacturing lowers one risk and raises the cost of everything else.' },
+  { title: 'A trade deal puts battery and chip materials on the table', deck: 'Negotiators are trading access to minerals and components that nearly every device depends on.', matters: 'Whoever controls the raw inputs gets a say in who can make the finished product.' },
+  { title: 'Undersea cables become a security question', deck: 'Governments are asking who owns, repairs and protects the lines that carry most internet traffic.', matters: 'The physical internet is thinner than it looks, and a few cuts can slow whole regions.' },
+];
+function buildSections() {
+  const visuals = (cat, k) => (glanceVisuals[cat] || glanceVisuals.Technology)[k % (glanceVisuals[cat] || glanceVisuals.Technology).length];
+  const pool = [], seen = new Set();
+  const feed = window.liveFeed;
+  if (feed) {
+    ['prime', 'cards', 'glance'].forEach((list) => (feed[list] || []).forEach((item, i) => {
+      if (seen.has(item.id)) return;
+      seen.add(item.id);
+      const cat = canon(item.category), hasVideo = list === 'prime' && i < PRIME_COUNT;
+      pool.push({
+        category: cat, title: item.headline, deck: item.summary, happened: item.happened || item.summary,
+        matters: item.why_it_matters || SAMPLE_WHY[String(cat).toLowerCase()] || SAMPLE_WHY.technology,
+        image: hasVideo ? item.image_url : visuals(cat, pool.length), imageAlt: '', imagePosition: 'center 42%',
+        ...(hasVideo ? { video: `prime/${item.id}.mp4?v=5`, poster: `prime/${item.id}.jpg?v=5` } : { isImage: true }),
+        badges: item.badges || [], id: item.id, audio: item.audio_url || '', source: item.source, link: item.link,
+        seconds: Number(item.duration_s) || 0, script: item.script || '',
+      });
+    }));
+  }
+  const spare = [...sampleStories, ...imageStories, ...glanceStories].map((st, k) => ({ ...st, category: canon(st.category), image: st.image || visuals(canon(st.category), k), imageAlt: st.imageAlt || st.alt || '', imagePosition: st.imagePosition || 'center 42%', happened: st.happened || st.deck, isImage: !st.video }));
+  const geo = SAMPLE_GEO.map((g, k) => ({ category: 'Tech geopolitics', ...g, happened: g.deck, image: visuals('Tech geopolitics', k), imageAlt: '', imagePosition: 'center 42%', isImage: true }));
+  return SECTIONS.map(([name, size]) => {
+    const take = (list) => list.filter((st) => st.category === name).sort((x, y) => (y.video ? 1 : 0) - (x.video ? 1 : 0));
+    const chosen = [];
+    [pool, spare, geo].forEach((src) => take(src).forEach((st) => { if (chosen.length < size) chosen.push(st); }));
+    return { name, stories: chosen };
+  }).filter((sec) => sec.stories.length);
 }
+const sections = buildSections();
+// the rest of the page reads one flat list in display order, so story numbers, Prev/Next and the reader all follow the sections
+sampleStories.splice(0, sampleStories.length, ...sections.flatMap((sec) => sec.stories));
+imageStories.splice(0);
+glanceStories.splice(0);
+const STORY_TOTAL = sampleStories.length;   // "N / total" on every card and in the reader
 
 // ---- "Most read today": exactly ONE story in the whole issue carries this: the Most viewed badge plus a "2,341 read this" strip with
 // a few reader circles. Any other most-viewed / most-read / most-glanced badge (from the feed or the hand-written samples) is dropped.
@@ -578,10 +621,28 @@ function mostReadToday() { return { id: '5a04354ee842f3fe', readers: 2341 }; }
 })();
 
 const JOURNALIST_NAME = 'Nastya';
-const storyCount = (count, one = 'story', many = 'stories') => `<span class="section-count">${count} ${count === 1 ? one : many}</span>`;
+const storyCount = (count, one = 'story', many = 'stories', hint = '') => `<span class="section-count">${count} ${count === 1 ? one : many}${hint ? `<span class="section-hint">${hint}</span>` : ''}</span>`;
 
 // Who presents the story and where it comes from: [N] Nastya · source. Swipe cards and glances have no presenter, so
 // they only show the source, and only when the story has one.
+// Stories you have opened in the reader get a small READ tag beside the byline (kept in this browser), as in the Bought. Daily design.
+const READ_TAG = '<span class="readtag">Read</span>';
+const readStories = new Set((() => { try { return Object.keys(JSON.parse(localStorage.getItem('bought-read') || '{}')); } catch (_) { return []; } })());
+function markStoryRead(story) {
+  const key = story.id || story.title;
+  if (readStories.has(key)) return;
+  readStories.add(key);
+  try { localStorage.setItem('bought-read', JSON.stringify(Object.fromEntries([...readStories].map((k) => [k, 1])))); } catch (_) { /* kept for this visit */ }
+  document.querySelectorAll('.lead-story, .swipe-slide, .glance-item').forEach((el) => {
+    if (el.querySelector('h2')?.textContent.trim() === story.title) el.querySelector('.story-byline')?.insertAdjacentHTML('beforeend', READ_TAG);
+  });
+}
+// The comment count on a card: shown exactly when the story has a discussion inside. Opens the story at its discussion.
+function renderCardTalk(story, number) {
+  if (!window.boughtDiscussion || !story.id || !window.boughtDiscussion.has(story.id)) return '';
+  const n = window.boughtDiscussion.count(story.id);
+  return `<button class="rd-talk" type="button" data-open-story="${number}" data-to-discussion data-talk-for="${escapeStoryText(story.id)}" aria-label="${n} comments, open the discussion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><b>${n}</b></button>`;
+}
 function renderByline(story, withPresenter, readTime = '') {
   const source = story.source
     ? (story.link ? `<a class="byline-source" href="${escapeStoryText(story.link)}" target="_blank" rel="noopener noreferrer">${escapeStoryText(story.source)}</a>` : `<span class="byline-source">${escapeStoryText(story.source)}</span>`)
@@ -592,13 +653,21 @@ function renderByline(story, withPresenter, readTime = '') {
     : '';
   const dot = withPresenter && source ? '<span class="byline-dot" aria-hidden="true">·</span>' : '';
   const read = readTime ? `${presenter || source ? '<span class="byline-dot" aria-hidden="true">·</span>' : ''}<span class="story-readtime">${escapeStoryText(readTime)}</span>` : '';
-  return `<span class="story-byline">${presenter}${dot}${source}${read}</span>`;
+  return `<span class="story-byline">${presenter}${dot}${source}${read}${readStories.has(story.id || story.title) ? READ_TAG : ''}</span>`;
 }
 
 // Reading time from the text we hold for the story (about 200 words a minute, never under 1 minute).
 function readMinutes(...parts) {
   const words = parts.filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
+}
+// The format line beside the section label, as in the Bought. Daily design: "▶ Video inside · 3 min" or "Text · 2 min"
+function renderFormat(number, story) {
+  const mins = readTimeLabel(number, story).replace(/\D+$/, '').replace(/ min.*/, '');
+  if (story.isImage) return `<span class="fmtb">Photo · ${mins} min</span>`;
+  return story.video
+    ? `<span class="fmtb"><i aria-hidden="true"></i>${story.seconds ? `${Math.floor(story.seconds / 60)}:${String(Math.round(story.seconds % 60)).padStart(2, '0')} · ` : ''}${mins} min</span>`
+    : `<span class="fmtb">Text · ${mins} min</span>`;
 }
 function readTimeLabel(number, story) {
   const detail = story.link ? [] : articleDetails[number - 1] || [story.happened, story.matters];
@@ -694,6 +763,8 @@ const REACT_ON = new Set(['1a0ad868f6c9c489', 'ec45826166dfe7e5', 'glance-1']);
 const REACTIONS = [['impressive', '🤯', 'Impressive'], ['concerning', '😬', 'Concerning'], ['overhyped', '🙄', 'Overhyped'], ['unknown', '💡', 'Didn’t know']];
 const stateKey = 'bought-engage', reactKey = 'bought-reacts';
 const readJson = (k) => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch (_) { return {}; } };
+// One-time clean-up (2026-11-04): clears the answers and reactions saved on this device while the engagement design was being reworked.
+try { if (localStorage.getItem('bought-engage-reset') !== '2026-11-04') { localStorage.removeItem(stateKey); localStorage.removeItem(reactKey); localStorage.setItem('bought-engage-reset', '2026-11-04'); } } catch (_) { /* nothing saved to clear */ }
 const engageState = readJson(stateKey), reactState = readJson(reactKey);
 const saveJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) { /* kept for this visit */ } };
 const seedOf = (text) => { let h = 0; for (const ch of text) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
@@ -717,6 +788,11 @@ function resultCard(id) {   // what the share card says, from your answer
   }
   return { kicker: 'My prediction', headline: `I’m calling it: ${e.labels[v === 'a' ? 0 : 1]}`, sub: e.q, pct: null, tail: `Resolves by ${e.by}` };
 }
+// Right after you answer, the share button floats over your result (which is blurred a little). Tap the ✕ or the blur to see the result.
+const freshAnswer = new Set();
+const shareOver = (id) => freshAnswer.has(id)
+  ? `<div class="share-over" data-dismiss-share><button class="poll-share" type="button" data-share-card>Share your result</button><button class="share-over-x" type="button" data-dismiss-share aria-label="Show my result">×</button></div>`
+  : '';
 function renderEngageInner(id) {
   const e = ENGAGE[id], v = engageState[id];
   const head = (kicker) => `<span class="poll-label">${escapeStoryText(kicker)}</span><p class="poll-q" id="poll-q-${id}">${escapeStoryText(e.q)}</p>`;
@@ -731,11 +807,12 @@ function renderEngageInner(id) {
     if (v === undefined) {
       return `${head('Open prediction')}<div class="poll-choices" role="group" aria-labelledby="poll-q-${id}">
         <button class="poll-choice" type="button" data-poll-vote="a">${e.labels[0]}</button><button class="poll-choice" type="button" data-poll-vote="b">${e.labels[1]}</button></div>
-        <p class="poll-note">Resolves automatically once it happens, then scored on your profile as a % accuracy, like a credibility rating. No money involved.</p>`;
+        <p class="poll-note">Scored on your profile once it resolves. No money involved.</p>`;
     }
     const open = Object.keys(engageState).filter((k) => ENGAGE[k] && ENGAGE[k].type === 'predict').length;
-    return `${head('Open prediction')}<div class="predict-called"><div><b>Your call:</b> ${e.labels[v === 'a' ? 0 : 1]}<span>Resolves by ${e.by}</span></div>${shareBtn}</div>
-      <p class="poll-note">You have ${open} open ${open === 1 ? 'prediction' : 'predictions'}. Your accuracy score starts once the first one resolves.</p>`;
+    const cells = ['a', 'b'].map((k, i) => `<div class="poll-row${v === k ? ' is-mine' : ''}"><span class="poll-fill"></span><span class="poll-name">${e.labels[i]}${v === k ? ' <i aria-hidden="true">✓</i>' : ''}</span></div>`).join('');
+    return `${head('Open prediction')}<div class="poll-reveal"><div class="poll-results${freshAnswer.has(id) ? ' is-blurred' : ''}" role="status">${cells}</div>${shareOver(id)}</div>
+      <div class="engage-foot"><p class="poll-note">Resolves by ${e.by} · ${open} open ${open === 1 ? 'prediction' : 'predictions'}</p>${freshAnswer.has(id) ? '' : shareBtn}</div>`;
   }
   if (v === undefined) {   // poll
     return `${head('Your take')}<div class="poll-choices" role="group" aria-labelledby="poll-q-${id}">
@@ -743,7 +820,7 @@ function renderEngageInner(id) {
   }
   const split = crowdFor(id, v);
   const rows = ['a', 'b'].map((k, i) => `<div class="poll-row${v === k ? ' is-mine' : ''}"><span class="poll-fill" style="width:${split[i]}%"></span><span class="poll-name">${e.labels[i]}${v === k ? ' <i aria-hidden="true">✓</i>' : ''}</span><b>${split[i]}%</b></div>`).join('');
-  return `${head('Your take')}<div class="poll-results" role="status">${rows}</div><div class="engage-foot"><p class="poll-note">You voted <b>${e.labels[v === 'a' ? 0 : 1]}</b>.</p>${shareBtn}</div>`;
+  return `${head('Your take')}<div class="poll-reveal"><div class="poll-results${freshAnswer.has(id) ? ' is-blurred' : ''}" role="status">${rows}</div>${shareOver(id)}</div><div class="engage-foot"><p class="poll-note">You voted <b>${e.labels[v === 'a' ? 0 : 1]}</b>.</p>${freshAnswer.has(id) ? '' : shareBtn}</div>`;
 }
 const renderEngage = (story) => (story.id && ENGAGE[story.id]) ? `<div class="story-poll" data-poll="${story.id}" data-kind="${ENGAGE[story.id].type}">${renderEngageInner(story.id)}</div>` : '';
 function renderReacts(story) {
@@ -817,15 +894,29 @@ async function openCardPopup(id, trigger) {
   cardPopup.querySelector('.card-popup-close').focus();
 }
 
-function renderStory(story, number, saveKey = number) {
+// The Prime is "the important news", laid out like the Bought. Daily design: the first three in one ranked row, then a grid that mixes
+// formats: a wide video story, two medium cards (one video, one text), then three small text stories, and again.
+// A 'text' card shows no picture and says "Text"; a 'video' card shows the player.
+function primeShape(index, story = {}) {
+  // a video slot with no video behind it shows the story's photo instead; text slots stay text
+  const media = (slot) => (slot === 'video' && !story.video ? 'image' : slot);
+  if (index === 0) return { size: 'lead', media: media('video') };   // the lead story: big video beside a big headline
+  if (index < 4) return { size: 'top', media: media(index < 3 ? 'video' : 'text'), rank: index };
+  const at = (index - 4) % 6;
+  return { size: ['xl', 'm', 'm', 's', 's', 's'][at], media: media(['video', 'video', 'text', 'text', 'text', 'text'][at]) };
+}
+function renderStory(story, number, saveKey = number, shape = {}) {
   const loading = number === 1 ? 'eager' : 'lazy';
+  const showMedia = shape.media !== 'text';
+  const asText = !showMedia ? { ...story, video: '', isImage: false } : story;
   return `
-    <article class="lead-story ${categoryClass(story.category)}" id="story-${number}" data-story-id="${escapeStoryText(story.id || '')}" aria-labelledby="story-title-${number}" data-story-number="${number}" data-save-key="${saveKey}">
+    <article class="lead-story ${categoryClass(story.category)}${shape.size ? ` prime-card sz-${shape.size}${showMedia ? '' : ' is-text'}` : ''}" id="story-${number}" data-story-id="${escapeStoryText(story.id || '')}" aria-labelledby="story-title-${number}" data-story-number="${number}" data-save-key="${saveKey}">
+      ${showMedia ? `
       <div class="video-poster${story.video ? ' has-video' : ''}">
         ${story.video
           ? `<video class="hero-image" src="${escapeStoryText(story.video)}" ${story.poster ? `poster="${escapeStoryText(story.poster)}" preload="none"` : 'preload="metadata"'} playsinline disablepictureinpicture disableremoteplayback aria-label="Story video: ${escapeStoryText(story.title)}"></video>`
           : `<img class="hero-image" src="${story.image}" alt="${escapeStoryText(story.imageAlt)}" style="object-position: ${escapeStoryText(story.imagePosition)}" loading="${loading}">`}
-        <span class="video-story-number" aria-label="Story ${number} of 50">${number} / 50</span>
+        <span class="video-story-number" aria-label="Story ${number} of ${STORY_TOTAL}">${number} / ${STORY_TOTAL}</span>
         ${story.video ? `<button class="play-news" type="button" aria-label="Play the news: ${escapeStoryText(story.title)}">
           <span class="microphone-circle">${microphoneIcon}<b class="countdown-num" aria-hidden="true"></b><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" /></svg><svg class="countdown-ring" viewBox="0 0 70 70" aria-hidden="true" focusable="false"><circle cx="35" cy="35" r="32" /></svg></span>
           <span class="countdown-label" aria-live="polite"></span>
@@ -834,10 +925,12 @@ function renderStory(story, number, saveKey = number) {
         <span class="seek-flash" aria-hidden="true"></span>
         <span class="video-progress" aria-hidden="true"><i></i></span>` : ''}
       </div>
+      ` : ''}
 
       <div class="story-copy">
+        ${shape.rank ? `<span class="rank" aria-hidden="true">${shape.rank}</span>` : ''}
         <div class="story-meta">
-          <span class="story-tags"><span class="story-section">${escapeStoryText(story.category)}</span>${renderBadges(story.badges)}</span>
+          <span class="story-tags"><span class="story-section">${shape.size === 'lead' ? 'Lead story · ' : ''}${escapeStoryText(story.category)}</span>${renderFormat(number, asText)}${renderBadges(story.badges)}</span>
           <div class="story-actions">
             <button class="story-action" type="button" data-action="save" aria-label="Save story ${number}" aria-pressed="false" title="Save story">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 4.5h12v15l-6-4-6 4z" /></svg>
@@ -845,7 +938,7 @@ function renderStory(story, number, saveKey = number) {
             <button class="story-action" type="button" data-action="share" aria-label="Share story ${number}" title="Share story">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="18" cy="19" r="2" /><path d="m8 11 8-5M8 13l8 5" /></svg>
             </button>
-            ${story.video ? `<button class="story-action" type="button" data-action="share-video" hidden aria-label="Share the video file, story ${number}" title="Share the video">
+            ${asText.video ? `<button class="story-action" type="button" data-action="share-video" hidden aria-label="Share the video file, story ${number}" title="Share the video">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10 5-3v10l-5-3" /></svg>
             </button>` : ''}
           </div>
@@ -853,10 +946,11 @@ function renderStory(story, number, saveKey = number) {
         ${renderReason(story)}
         <h2 id="story-title-${number}"><button class="story-title-button" type="button" data-open-story="${number}" aria-label="Read full story: ${escapeStoryText(story.title)}">${escapeStoryText(story.title)}</button></h2>
         <p class="story-deck">${escapeStoryText(story.deck)}</p>
-        <div class="story-byline-row">${renderByline(story, false, readTimeLabel(number, story))}</div>
+        <div class="story-byline-row rd-byrow">${renderByline(story, true)}${renderCardTalk(story, number)}</div>
         ${story.readers ? `<div class="story-readers"><span class="readers-stack" aria-hidden="true"><i></i><i></i><i></i></span><span><b>${story.readers.toLocaleString('en-US')}</b> read this</span></div>` : ''}
         ${renderEngage(story)}
         ${renderReacts(story)}
+        <button class="more" type="button" data-open-story="${number}">Read the full story <span aria-hidden="true">→</span></button>
         ${story.link
           ? ''
           : `<div class="story-facts">
@@ -892,7 +986,7 @@ function renderImageCarousel() {
   return `
     <section class="image-swipe-block" aria-label="Image news stories">
       <div class="section-break" aria-hidden="true"><span></span><span></span><span></span></div>
-      <header class="section-marker"><h2 data-i18n="sec.swipe">Swipe cards</h2>${storyCount(imageStories.length)}</header>
+      <header class="section-marker"><h2 data-i18n="sec.swipe">Swipe cards</h2>${storyCount(imageStories.length, 'story', 'stories', 'swipe →')}</header>
       <div class="image-swipe-card" tabindex="0" aria-roledescription="carousel" aria-label="Image news stories. Swipe or tap the sides to change stories.">
         <div class="swipe-track">${slides}</div>
         <div class="swipe-progress" aria-label="Image story navigation">${progress}</div>
@@ -915,7 +1009,7 @@ function renderGlances() {
       <article class="glance-item ${categoryClass(story.category)}${story.deck ? '' : ' is-brief'} is-image-${imageSide}${index === 0 ? ' is-feature' : index === 5 ? ' is-wide' : ''}" id="story-${number}" aria-labelledby="glance-title-${number}">
         <div class="glance-visual" aria-hidden="true"><img src="${image}" alt="" loading="${index < 4 ? 'eager' : 'lazy'}"><span class="glance-image-number">${number} / 50</span></div>
         <div class="glance-copy">
-          <div class="glance-meta"><span class="glance-tags"><span class="glance-category">${escapeStoryText(story.category)}</span>${renderBadges(story.badges)}${renderByline(story, false)}</span><span class="sr-only">Story ${number} of 50</span></div>
+          <div class="glance-meta"><span class="glance-tags"><span class="glance-category">${escapeStoryText(story.category)}</span>${renderFormat(number, story)}${renderBadges(story.badges)}${renderByline(story, false)}</span><span class="sr-only">Story ${number} of 50</span></div>
           <h3 id="glance-title-${number}"><button class="story-title-button" type="button" data-open-story="${number}" aria-label="Read full story: ${escapeStoryText(story.title)}">${escapeStoryText(story.title)}</button></h3>
         </div>
         <div class="glance-facts">
@@ -938,21 +1032,45 @@ function renderGlances() {
 }
 
 const storiesRoot = document.querySelector('#edition-stories');
-const primeSpotlights = spotlightSlots(sampleStories.length, SPOTLIGHT_PRIME);
+// One section = a heading, its stories laid out as a mix of video / photo / text cards, and any Spotlight placed between them.
+// The first section opens with the lead story and the ranked top three; the others go straight to the mixed grid.
+function renderSection(sec, first, k, isFirst) {
+  const list = sec.stories, n = list.length;
+  const head = isFirst ? 4 : 0;                                          // stories shown above the grid in the first section
+  const gridList = list.slice(head);
+  const slotsAt = new Set(k.spots.map((_, j) => Math.max(2, Math.round(gridList.length * (j + 1) / (k.spots.length + 1))) - 1));
+  const card = (st, i) => renderStory(st, first + i + 1, first + i + 1, primeShape(head ? i : i + 4, st));   // first: i is the section index; others skip the lead/top slots
+  let spot = 0;
+  const grid = gridList.map((st, g) => card(st, head + g) + (slotsAt.has(g) ? renderSpotlightPlacement(k.spots[spot++]) : '')).join('');
+  const id = `sec-${sec.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  return `<section class="prime-section ${categoryClass(sec.name)}" aria-labelledby="${id}">
+    <header class="section-marker prime-marker"><h2 id="${id}">${escapeStoryText(sec.name)}</h2>${storyCount(n)}</header>
+    ${head ? `<div class="prime-lead">${card(list[0], 0)}</div>
+    <div class="prime-tops">${list.slice(1, 4).map((st, i) => card(st, i + 1)).join('')}</div>` : ''}
+    <div class="prime-grid">${grid}</div>
+    ${k.extras || ''}
+  </section>`;
+}
+let sectionStart = 0;
+const sectionHtml = sections.map((sec, i) => {
+  const first = sectionStart;
+  sectionStart += sec.stories.length;
+  const k = [
+    { spots: [1], extras: renderDayNumbers('prime', first + 1, sec.stories.length) + renderClassifieds('prime') },
+    { spots: [2] },
+    { spots: [3], extras: renderDayNumbers('swipe', first + 1, sec.stories.length) + renderClassifieds('swipe') },
+    { spots: [7, 8] },
+    { spots: [9] },
+    { spots: [], extras: renderDayNumbers('glance', first + 1, sec.stories.length) + renderClassifieds('glance') },
+  ][i];
+  return renderSection(sec, first, k, i === 0);
+});
 storiesRoot.innerHTML = [
-  `<section class="prime-section" aria-labelledby="prime-heading">
-    <header class="section-marker prime-marker"><h2 id="prime-heading" data-i18n="sec.prime">The Prime</h2>${storyCount(sampleStories.length)}</header>
-    ${sampleStories.map((story, index) => renderStory(story, index + 1) + (primeSpotlights.has(index + 1) ? renderSpotlightPlacement(primeSpotlights.get(index + 1)) : '')).join('')}
-    ${renderDayNumbers('prime', 1, sampleStories.length)}
-    ${renderClassifieds('prime')}
-  </section>`,
-  renderImageCarousel(),
-  renderDayNumbers('swipe', sampleStories.length + 1, imageStories.length),
-  renderClassifieds('swipe'),
+  ...sectionHtml.slice(0, 3),
   renderPulse(),
-  renderSpotlightPlacement(SPOTLIGHT_PRIME + 1),
-  renderGlances(),
-  renderSpotlightPlacement(SPOTLIGHT_PRIME + SPOTLIGHT_GLANCE + 2),
+  renderSpotlightPlacement(6),
+  ...sectionHtml.slice(3),
+  renderSpotlightPlacement(10),
 ].join('');
 
 const allStories = [...sampleStories, ...imageStories, ...glanceStories];
@@ -962,12 +1080,65 @@ let articleOpener = null;
 
 function closeFullStory() {
   if (articleOverlay.hidden) return;
+  stopReaderMedia();
   articleOverlay.hidden = true;
+  syncCardsWithReader();
   document.documentElement.classList.remove('is-reading');
   articleOpener?.focus();
   articleOpener = null;
 }
 
+
+// The reader's Listen button: a story with a video plays that video's voice-over; any other story is read aloud by the browser's voice.
+function stopReaderMedia() {
+  articleOverlayContent.querySelector('.rd-vid video')?.pause();
+  try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (_) { /* no speech on this device */ }
+  articleOverlayContent.querySelector('[data-listen]')?.classList.remove('is-on');
+}
+// Answers given inside the reader are shared state: when it closes, redraw the matching engagement blocks on the cards.
+function syncCardsWithReader() {
+  freshAnswer.clear();
+  storiesRoot.querySelectorAll('.story-poll').forEach((box) => { box.innerHTML = renderEngageInner(box.dataset.poll); });
+  storiesRoot.querySelectorAll('[data-react-for]').forEach((box) => { box.outerHTML = renderReacts({ id: box.dataset.reactFor }); });
+  storiesRoot.querySelectorAll('[data-talk-for]').forEach((talk) => {   // a comment added in the reader counts on the card too
+    const n = window.boughtDiscussion.count(talk.dataset.talkFor);
+    talk.querySelector('b').textContent = n;
+    talk.setAttribute('aria-label', `${n} comments, open the discussion`);
+  });
+}
+function toggleReaderVideo(frame) {
+  const v = frame.querySelector('video');
+  if (v.paused) v.play().catch(() => {}); else v.pause();
+}
+[['play', true], ['pause', false], ['ended', false]].forEach(([type, on]) => articleOverlay.addEventListener(type, (event) => {
+  const frame = event.target.closest && event.target.closest('[data-rd-vid]');
+  if (!frame) return;
+  frame.classList.toggle('is-playing', on);
+  articleOverlay.querySelector('[data-listen]')?.classList.toggle('is-on', on);
+}, true));
+articleOverlay.addEventListener('timeupdate', (event) => {
+  const v = event.target, frame = v.closest && v.closest('[data-rd-vid]');
+  if (!frame || !v.duration) return;
+  frame.querySelector('.rd-vid-bar i').style.width = `${v.currentTime / v.duration * 100}%`;
+}, true);
+articleOverlay.addEventListener('click', (event) => {
+  const frame = event.target.closest('[data-rd-vid]');
+  if (frame) { toggleReaderVideo(frame); return; }
+  if (event.target === articleOverlay) { closeFullStory(); return; }   // tap the dimmed page to close
+  if (event.target.closest('[data-jump-discussion]')) { event.preventDefault(); articleOverlayContent.querySelector('#discussion')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  const listen = event.target.closest('[data-listen]');
+  if (!listen) return;
+  const video = articleOverlayContent.querySelector('.rd-vid');
+  if (video) { toggleReaderVideo(video); return; }
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+  if (synth.speaking) { stopReaderMedia(); return; }
+  const text = [...articleOverlayContent.querySelectorAll('h2, .rd-dek, .rd-info p, .rd-why p')].map((el) => el.textContent).join('. ');
+  synth.speak(new SpeechSynthesisUtterance(text));
+  listen.classList.add('is-on');
+});
+
+if (window.boughtDiscussion) window.boughtDiscussion.mount(articleOverlayContent, (m) => showActionFeedback(m));
 let storyTranslations = null;           // {id: {headline, summary}} for the chosen language, or null (English)
 
 function openFullStory(number, opener) {
@@ -977,29 +1148,49 @@ function openFullStory(number, opener) {
   const story = tr ? { ...original, title: tr.headline, deck: tr.summary } : original;
   const [opening, continuation] = story.link ? [story.deck, ''] : articleDetails[number - 1] || [story.happened || story.deck, story.matters];
   articleOpener = opener;
+  stopReaderMedia();
+  storiesRoot.querySelectorAll('video').forEach((v) => v.pause());
+  articleOverlayContent.className = `article-overlay-content ${categoryClass(story.category)}`;
+  const prevStory = allStories[number - 2], nextStory = allStories[number];
+  const nextTitle = nextStory ? escapeStoryText(storyTranslations && nextStory.id && storyTranslations[nextStory.id] ? storyTranslations[nextStory.id].headline : nextStory.title) : "You've reached the last story";
+  const paras = story.link ? [] : [opening, continuation];
+  const happened = story.happened || story.deck;
+  const talk = !!(window.boughtDiscussion && story.id && window.boughtDiscussion.has(story.id)), talkCount = talk ? window.boughtDiscussion.count(story.id) : 0;
+  const info = story.script || paras.filter(Boolean).join(' ');
   articleOverlayContent.innerHTML = `
-    <div class="article-overlay-top">
-      <span class="article-overlay-category">${escapeStoryText(story.category)}</span>
-      <span class="article-overlay-number">${readTimeLabel(number, story)} · ${number} / 50</span>
-      <button class="article-overlay-close" type="button" aria-label="Close full story">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg>
-      </button>
+    <div class="rd-top">
+      <span class="pos">${escapeStoryText(story.category)} · ${number} of ${STORY_TOTAL}</span>
+      <button class="chip-btn" type="button" data-listen>Listen</button>
+      <button class="chip-btn article-overlay-close" type="button" aria-label="Close full story">Close</button>
     </div>
-    <article aria-labelledby="article-overlay-title">
-      <h2 id="article-overlay-title">${escapeStoryText(story.title)}</h2>
-      <p class="article-overlay-deck">${escapeStoryText(story.deck)}</p>
-      <div class="article-overlay-rule" aria-hidden="true"></div>
-      <div class="article-overlay-body">
-        <p>${escapeStoryText(opening)}</p>
-        ${story.link
-          ? `<p><a href="${escapeStoryText(story.link)}" rel="noopener" target="_blank">Read the full story at ${escapeStoryText(story.source)}</a></p>`
-          : `<p>${escapeStoryText(continuation)}</p>
-        <h3>Why it matters</h3>
-        <p>${escapeStoryText(story.matters)}</p>`}
-      </div>
-    </article>`;
+    <div class="rd-bar" aria-hidden="true"><i style="width:${number / STORY_TOTAL * 100}%"></i></div>
+    <div class="rd-body" id="rd-body">
+      <article class="rd-article" aria-labelledby="article-overlay-title">
+        <div class="story-tags"><span class="story-section">${escapeStoryText(story.category)}</span>${renderFormat(number, story)}${renderBadges(story.badges)}</div>
+        <h2 id="article-overlay-title">${escapeStoryText(story.title)}</h2>
+        <p class="rd-dek">${escapeStoryText(story.deck)}</p>
+        <div class="story-byline-row rd-byrow">${renderByline(story, true)}${talk ? `<a class="rd-talk" href="#discussion" data-jump-discussion aria-label="${talkCount} comments"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><b data-comment-count>${talkCount}</b></a>` : ''}</div>
+        ${story.video ? `<div class="rd-vid" data-rd-vid>
+          <video src="${escapeStoryText(story.video)}" ${story.poster ? `poster="${escapeStoryText(story.poster)}"` : ''} playsinline preload="metadata" disablepictureinpicture></video>
+          <button class="rd-vid-big" type="button" aria-label="Play the video"><i></i></button>
+          <span class="rd-vid-bar"><i></i></span>
+        </div>` : story.image ? `<img class="rd-photo" src="${escapeStoryText(story.image)}" alt="${escapeStoryText(story.imageAlt || '')}" style="object-position: ${escapeStoryText(story.imagePosition || 'center')}">` : ''}
+        ${info ? `<div class="rd-info"><p>${escapeStoryText(info)}</p></div>` : ''}
+        <div class="rd-pair"><div class="rd-why"><b>What happened</b><p>${escapeStoryText(happened)}</p></div>
+        ${story.matters ? `<div class="rd-why"><b>Why it matters</b><p>${escapeStoryText(story.matters)}</p></div>` : ''}</div>
+        ${renderEngage(story)}
+        ${renderReacts(story)}
+        ${story.link ? `<div class="rd-acts"><a href="${escapeStoryText(story.link)}" rel="noopener" target="_blank">Read the original on ${escapeStoryText(story.source || 'the source')} <span aria-hidden="true">↗</span></a></div>` : ''}
+        ${talk ? window.boughtDiscussion.render(story.id) : ''}
+      </article>
+    </div>
+    <div class="article-overlay-foot">
+      <button class="foot-prev" type="button" ${prevStory ? `data-story-step="${number - 1}"` : 'disabled'}>← Prev</button>
+      <button class="foot-next" type="button" ${nextStory ? `data-story-step="${number + 1}"` : 'disabled'}><small>${nextStory ? 'Next story' : 'End of issue'}</small><b>${nextTitle}</b></button>
+    </div>`;
   articleOverlay.hidden = false;
-  articleOverlay.scrollTop = 0;
+  markStoryRead(original);
+  articleOverlayContent.querySelector('#rd-body').scrollTop = 0;
   document.documentElement.classList.add('is-reading');
   articleOverlay.querySelector('.article-overlay-close').focus();
 }
@@ -1008,17 +1199,26 @@ storiesRoot.addEventListener('click', (event) => {
   const title = event.target.closest('[data-open-story]');
   if (title && !(title.closest('.image-swipe-card') && Date.now() < ignoreTapUntil)) {
     openFullStory(Number(title.dataset.openStory), title);
+    if (title.hasAttribute('data-to-discussion')) articleOverlayContent.querySelector('#discussion')?.scrollIntoView({ block: 'start' });
   }
 });
 articleOverlay.addEventListener('click', (event) => {
   if (event.target.closest('.article-overlay-close')) closeFullStory();
+  const step = event.target.closest('[data-story-step]');
+  if (step) openFullStory(Number(step.dataset.storyStep), articleOpener);
 });
 document.addEventListener('keydown', (event) => {
   if (articleOverlay.hidden) return;
   if (event.key === 'Escape') closeFullStory();
-  if (event.key === 'Tab') {
+  if ((event.key === 'ArrowRight' || event.key === 'ArrowLeft') && !/INPUT|TEXTAREA/.test(event.target.tagName)) {
+    const go = articleOverlay.querySelector(event.key === 'ArrowRight' ? '.foot-next' : '.foot-prev');
+    if (go && !go.disabled) { event.preventDefault(); go.click(); }
+  }
+  if (event.key === 'Tab') {   // keep focus inside the story: close, prev, next
+    const ring = [...articleOverlay.querySelectorAll('button:not(:disabled), a[href]')];
+    const at = ring.indexOf(document.activeElement), to = event.shiftKey ? at - 1 : at + 1;
     event.preventDefault();
-    articleOverlay.querySelector('.article-overlay-close').focus();
+    ring[(to + ring.length) % ring.length].focus();
   }
 });
 
@@ -1043,11 +1243,11 @@ if ('ResizeObserver' in window) new ResizeObserver(syncMastheadHeight).observe(s
 })();
 window.addEventListener('resize', syncMastheadHeight);
 
-const swipeCard = storiesRoot.querySelector('.image-swipe-card');
+const swipeCard = storiesRoot.querySelector('.image-swipe-card') || Object.assign(document.createElement('div'), { innerHTML: '<div class="swipe-track"></div>' });   // no swipe strip any more: a detached stand-in keeps the old handlers harmless
 const swipeTrack = swipeCard.querySelector('.swipe-track');
 const swipeSlides = [...swipeCard.querySelectorAll('.swipe-slide')];
 const swipeSteps = [...swipeCard.querySelectorAll('.swipe-progress-step')];
-const swipeAnnouncement = storiesRoot.querySelector('.swipe-announcement');
+const swipeAnnouncement = storiesRoot.querySelector('.swipe-announcement') || document.createElement('span');
 let activeImageStory = 0;
 
 function updateImageStory(index) {
@@ -1315,11 +1515,12 @@ storiesRoot.addEventListener('click', (event) => {   // Pulse card buttons
 });
 
 function refreshEngage(box) { box.innerHTML = renderEngageInner(box.dataset.poll); }
-storiesRoot.addEventListener('input', (event) => {   // slider: show your number as you drag
+const engageRoots = [storiesRoot, articleOverlay];
+const onEngageInput = (event) => {   // slider: show your number as you drag
   const slider = event.target.closest('.slider');
   if (slider) slider.closest('.story-poll').querySelector('.slider-you b').textContent = slider.value;
-});
-storiesRoot.addEventListener('change', (event) => {   // slider: when you let go, that number is your answer (drag again to change it)
+};
+const onEngageChange = (event) => {   // slider: when you let go, that number is your answer (drag again to change it)
   const slider = event.target.closest('.slider');
   if (!slider) return;
   const box = slider.closest('.story-poll'), id = box.dataset.poll;
@@ -1328,26 +1529,29 @@ storiesRoot.addEventListener('change', (event) => {   // slider: when you let go
   box.querySelector('.slider-avg').hidden = false;
   box.querySelector('.slider-avgtext').hidden = false;
   box.querySelector('.poll-share').hidden = false;   // the share button (and its card) follow your latest number
-});
-storiesRoot.addEventListener('click', async (event) => {   // answers, predictions, sliders, reactions and result cards
+};
+const onEngageClick = async (event) => {   // answers, predictions, sliders, reactions and result cards
   const react = event.target.closest('[data-react]');
   if (react) {   // one reaction at a time: choosing another moves your choice, tapping yours again takes it back
     const id = react.closest('.story-reacts').dataset.reactFor, k = react.dataset.react, current = (reactState[id] || [])[0];
     reactState[id] = current === k ? [] : [k];
     saveJson(reactKey, reactState);
     react.closest('.story-reacts').outerHTML = renderReacts({ id });
-    if (event.detail === 0) storiesRoot.querySelector(`[data-react-for="${id}"] [data-react="${k}"]`)?.focus();   // keep the keyboard place; a mouse click needs no ring
+    if (event.detail === 0) document.querySelector(`[data-react-for="${id}"] [data-react="${k}"]`)?.focus();   // keep the keyboard place; a mouse click needs no ring
     return;
   }
-  const vote = event.target.closest('[data-poll-vote]'), card = event.target.closest('[data-share-card]');
-  if (!vote && !card) return;
+  const vote = event.target.closest('[data-poll-vote]'), card = event.target.closest('[data-share-card]'), dismiss = event.target.closest('[data-dismiss-share]');
+  if (!vote && !card && !dismiss) return;
   const box = event.target.closest('.story-poll'), id = box.dataset.poll;
   if (card) { openCardPopup(id, card); return; }
+  if (dismiss) { freshAnswer.delete(id); refreshEngage(box); box.querySelector('.poll-share')?.focus?.({ preventScroll: true }); return; }
   engageState[id] = vote.dataset.pollVote;   // an answer or a prediction is final once given: no "change" button
+  freshAnswer.add(id);
   saveJson(stateKey, engageState);
   refreshEngage(box);
-  box.querySelector('.poll-share')?.focus?.();
-});
+  box.querySelector('.poll-share')?.focus?.({ preventScroll: true });
+};
+engageRoots.forEach((root) => { root.addEventListener('input', onEngageInput); root.addEventListener('change', onEngageChange); root.addEventListener('click', onEngageClick); });
 
 
 storiesRoot.addEventListener('click', (event) => {
